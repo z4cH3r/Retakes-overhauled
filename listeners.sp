@@ -8,13 +8,12 @@
 
 public void InitListeners() {
     AddCommandListener(l_JoinTeam, "jointeam");
-
 }
 
 /*
  *  Listen on client "JoinTeam" command to disable players switching teams
  */
-public Action:l_JoinTeam(int client, const String:command[], int argc) {
+public Action l_JoinTeam(int client, const char[] command, int argc) {
     if (0 == client) {
         return Plugin_Continue;
     }

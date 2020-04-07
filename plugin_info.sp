@@ -1,5 +1,5 @@
 #define PLUGIN_VERSION "1.0"
-public Plugin:myinfo = 
+public Plugin myinfo = 
 {
 	name = "CSGO Retake",
 	author = "ae",

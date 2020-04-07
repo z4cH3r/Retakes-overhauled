@@ -2,8 +2,9 @@
 #define TYPES_SP
 
 /********** Defines **********/
-#define MAX_COMMAND_SIZE 128
 #define MAX_INPUT_SIZE 32
+#define MAX_CONVAR_SIZE 256
+#define MAX_COMMAND_SIZE 128
 
 /********** Enums **********/
 enum SpawnType
@@ -15,11 +16,11 @@ enum SpawnType
 
 enum RoundTypes
 {
-    WARMUP          = 0b00000001,
-    WAITING         = 0b00000010,
-    PISTOL_ROUND    = 0b00000100,
-    FULLBUY_ROUND   = 0b00001000,
-    DEAGLE_ROUND    = 0b00010000,
+    WARMUP          = 0x00000001,
+    WAITING         = 0x00000002,
+    PISTOL_ROUND    = 0x00000004,
+    FULLBUY_ROUND   = 0x00000008,
+    DEAGLE_ROUND    = 0x00000010,
 };
 
 enum WeaponTypes {
@@ -28,40 +29,48 @@ enum WeaponTypes {
     /** Pistols **/
     USP             = 0x00000001,
     P2000           = 0x00000002,
-    CZ              = 0x00000004,
-    DEAGLE          = 0x00000008,
-    FIVESEVEN       = 0x00000010,
+    FIVESEVEN       = 0x00000004,
+    GLOCK           = 0x00000010,
     TEC9            = 0x00000020,
-    P250            = 0x00000040,
-    PISTOL_MASK     = 0x000000FF,
+    CZ              = 0x00000100,
+    DEAGLE          = 0x00000200,
+    P250            = 0x00000400,
+    PISTOL_MASK     = 0x00000FFF,
+    PISTOL_T_MASK   = 0x00000FF0,
+    PISTOL_CT_MASK  = 0x00000F0F,
 
     /** Rifles **/
-    AK47            = 0x00000100,
-    SG553           = 0x00000200,
-    M4A1            = 0x00000400,
-    M4A1S           = 0x00000800,
-    AWP             = 0x00001000,
-    RIFLE_MASK      = 0x0000FF00,
+    M4A1            = 0x00001000,
+    M4A1S           = 0x00002000,
+    AUG             = 0x00004000,
+    AK47            = 0x00010000,
+    SG553           = 0x00020000,
+    AWP             = 0x00100000,
+    RIFLE_MASK      = 0x00FFF000,
+    RIFLE_T_MASK    = 0x00FF0000,
+    RIFLE_CT_MASK   = 0x00F0F000,
 
     /** Utility **/
-    FLASHBANG       = 0x00010000,
-    SMOKE           = 0x00020000,
-    HEGRENADE       = 0x00040000,
-    MOLOTOV         = 0x00080000,
-    INCENDIARY      = 0x00100000,
-    UTILITY_MASK    = 0x00FF0000
+    FLASHBANG       = 0x01000000,
+    SMOKE           = 0x02000000,
+    HEGRENADE       = 0x04000000,
+    MOLOTOV         = 0x10000000,
+    INCENDIARY      = 0x20000000,
+    UTILITY_MASK    = 0xFF000000,
+    UTILITY_T_MASK  = 0x1F000000,
+    UTILITY_CT_MASK = 0x2F000000,
 }
 
 enum cookies {
     cAwp,
-    cPistol,
+    cAwpSecondary,
     cPrimaryT,
     cPrimaryCT,
 }
 
 enum struct ClientPref {
     bool want_awp;
-    WeaponTypes pistol;
+    WeaponTypes awp_secondary;
     WeaponTypes primary_t;
     WeaponTypes primary_ct;
 
@@ -71,8 +80,8 @@ enum struct ClientPref {
         IntToString(this.want_awp, itoa, sizeof(itoa));
         SetCookie(client, cAwp, itoa);
 
-        IntToString(view_as<int>(this.pistol), itoa, sizeof(itoa));
-        SetCookie(client, cPistol, itoa);
+        IntToString(view_as<int>(this.awp_secondary), itoa, sizeof(itoa));
+        SetCookie(client, cAwpSecondary, itoa);
 
         IntToString(view_as<int>(this.primary_t), itoa, sizeof(itoa));
         SetCookie(client, cPrimaryT, itoa);
