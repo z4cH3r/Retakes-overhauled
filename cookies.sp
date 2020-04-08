@@ -13,10 +13,10 @@ Handle g_hClientPrimaryCT = INVALID_HANDLE;
 
 
 public void InitCookies() {
-    g_hClientAwp = RegClientCookie("cAwp3121", "Client awp preference", CookieAccess_Protected);
-    g_hClientAwpSecondary = RegClientCookie("cPistol2113", "Client secondary preference when with awp", CookieAccess_Protected);
-    g_hClientPrimaryT = RegClientCookie("cPrimaryT2113", "Client Primary T weapon preference", CookieAccess_Protected);
-    g_hClientPrimaryCT = RegClientCookie("cPrimaryCT2113", "Client Primary CT preference", CookieAccess_Protected);
+    g_hClientAwp = RegClientCookie("cAwp31121", "Client awp preference", CookieAccess_Protected);
+    g_hClientAwpSecondary = RegClientCookie("cPistol21113", "Client secondary preference when with awp", CookieAccess_Protected);
+    g_hClientPrimaryT = RegClientCookie("cPrimaryT21113", "Client Primary T weapon preference", CookieAccess_Protected);
+    g_hClientPrimaryCT = RegClientCookie("cPrimaryCT21113", "Client Primary CT preference", CookieAccess_Protected);
 }
 
 public Handle GetCookie(cookies cookie) {
@@ -66,26 +66,26 @@ public void OnClientCookiesCached(int client) {
 
     GetClientCookie(client, GetCookie(cAwp), pref, sizeof(pref));
     if (0 == strlen(pref)) { is_new |= true; }
-    g_ClientWeaponPref[client].pref.want_awp = (is_new) ? false : view_as<bool>(StringToInt(pref));
+    g_Client[client].pref.want_awp = (is_new) ? false : view_as<bool>(StringToInt(pref));
     PrintToChatAll("Awp %s", pref);
 
     GetClientCookie(client, GetCookie(cAwpSecondary), pref, sizeof(pref));
     if (0 == strlen(pref)) { is_new |= true; }
-    g_ClientWeaponPref[client].pref.awp_secondary = (is_new) ? P250 : view_as<WeaponTypes>(StringToInt(pref));
+    g_Client[client].pref.awp_secondary = (is_new) ? P250 : view_as<WeaponTypes>(StringToInt(pref));
     PrintToChatAll("Pistol %s", pref);
 
     GetClientCookie(client, GetCookie(cPrimaryT), pref, sizeof(pref));
     if (0 == strlen(pref)) { is_new |= true; }
-    g_ClientWeaponPref[client].pref.primary_t = (is_new) ? AK47 : view_as<WeaponTypes>(StringToInt(pref));
+    g_Client[client].pref.primary_t = (is_new) ? AK47 : view_as<WeaponTypes>(StringToInt(pref));
     PrintToChatAll("Primary T %s", pref);
 
     GetClientCookie(client, GetCookie(cPrimaryCT), pref, sizeof(pref));
     if (0 == strlen(pref)) { is_new |= true; }
-    g_ClientWeaponPref[client].pref.primary_ct = (is_new) ? M4A1 : view_as<WeaponTypes>(StringToInt(pref));
+    g_Client[client].pref.primary_ct = (is_new) ? M4A1 : view_as<WeaponTypes>(StringToInt(pref));
     PrintToChatAll("primary CT %s", pref);
 
     if (is_new) {
-        g_ClientWeaponPref[client].pref.StoreClientCookies(client);
+        g_Client[client].pref.StoreClientCookies(client);
         MenuGunPref(client, 0);
     }
 }

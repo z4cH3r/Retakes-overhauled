@@ -65,7 +65,7 @@ public Menu GetAwpMenu() {
     return PrimaryCTMenu;
  }
 
-/* Hold menus in main because we want to access g_ClientWeaponPref */
+/* Hold menus in main because we want to access g_Client */
 public Action MenuGunPref(int client, int argc)
 {
     Menu PrimaryTMenu = GetPrimaryTMenu();
@@ -81,8 +81,8 @@ public int PrimaryTMenuHandler(Menu menu, MenuAction action, int client, int par
         char input[MAX_INPUT_SIZE];
         bool found = menu.GetItem(param2, input, sizeof(input));
         PrintToChatAll("Primary T client %d - You selected item: %s (found? %d info: %s)", client, param2, found, input);
-        g_ClientWeaponPref[client].pref.primary_t = view_as<WeaponTypes>(StringToInt(input));
-        g_ClientWeaponPref[client].pref.StoreClientCookies(client);
+        g_Client[client].pref.primary_t = view_as<WeaponTypes>(StringToInt(input));
+        g_Client[client].pref.StoreClientCookies(client);
 
         Menu PrimaryCTMenu = GetPrimaryCTMenu();
         
@@ -101,8 +101,8 @@ public int PrimaryCTMenuHandler(Menu menu, MenuAction action, int client, int pa
         char input[MAX_INPUT_SIZE];
         bool found = menu.GetItem(param2, input, sizeof(input));
         PrintToChatAll("Primary CT client %d - You selected item: %s (found? %d info: %s)", client, param2, found, input);
-        g_ClientWeaponPref[client].pref.primary_ct = view_as<WeaponTypes>(StringToInt(input));
-        g_ClientWeaponPref[client].pref.StoreClientCookies(client);
+        g_Client[client].pref.primary_ct = view_as<WeaponTypes>(StringToInt(input));
+        g_Client[client].pref.StoreClientCookies(client);
 
         Menu AwpMenu = GetAwpMenu();
         AwpMenu.Display(client, MENU_TIME_FOREVER);
@@ -120,9 +120,9 @@ public int MenuGunAwpHandler(Menu menu, MenuAction action, int client, int param
         char input[MAX_INPUT_SIZE];
         bool found = menu.GetItem(param2, input, sizeof(input));
         PrintToChatAll("Want awp client %d - You selected item: %s (found? %d info: %s)", client, param2, found, input);
-        g_ClientWeaponPref[client].pref.want_awp = view_as<bool>(StringToInt(input));
-        g_ClientWeaponPref[client].pref.StoreClientCookies(client);
-        if (g_ClientWeaponPref[client].pref.want_awp) {
+        g_Client[client].pref.want_awp = view_as<bool>(StringToInt(input));
+        g_Client[client].pref.StoreClientCookies(client);
+        if (g_Client[client].pref.want_awp) {
             Menu AwpSecondaryMenu = GetAwpSecondaryMenu();
             AwpSecondaryMenu.Display(client, MENU_TIME_FOREVER);
         }
@@ -140,8 +140,8 @@ public int AwpSecondaryMenuHandler(Menu menu, MenuAction action, int client, int
         char input[MAX_INPUT_SIZE];
         bool found = menu.GetItem(param2, input, sizeof(input));
         PrintToChatAll("Awp secondary client %d - You selected item: %s (found? %d info: %s)", client, param2, found, input);
-        g_ClientWeaponPref[client].pref.awp_secondary = view_as<WeaponTypes>(StringToInt(input));
-        g_ClientWeaponPref[client].pref.StoreClientCookies(client);
+        g_Client[client].pref.awp_secondary = view_as<WeaponTypes>(StringToInt(input));
+        g_Client[client].pref.StoreClientCookies(client);
     }
     if (action == MenuAction_End)
     {
