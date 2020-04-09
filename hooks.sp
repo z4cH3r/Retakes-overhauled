@@ -208,6 +208,7 @@ public void OnClientDisconnect_Post(int client) {
     if ((GetClientCountFix() < MIN_PLAYERS) && (~RETAKE_NOT_LIVE & g_rtRoundState)) {
         RetakeStop();
     }
+    g_ClientQueue.pop(g_ClientQueue.get_index(client));
 }
 
 #endif // HOOKS_SP

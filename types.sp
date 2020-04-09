@@ -145,14 +145,14 @@ enum struct Client {
 
 enum struct Queue {
     int data[MAXPLAYERS];
-    int len;
+    int size;
 
     bool insert(int client) {
         if (IsClientSourceTV(client)) {
             return false;
         }
 
-        if ((MAXPLAYERS - 1) == this.len) {
+        if ((MAXPLAYERS - 1) == this.size) {
             return false;
         }
     
@@ -161,22 +161,22 @@ enum struct Queue {
             this.pop(index);
         }
 
-        this.data[this.len] = client;
+        this.data[this.size] = client;
     
-        this.len++;
-        PrintToChat(client, "You are now %d place in the queue", this.len);
+        this.size++;
+        PrintToChat(client, "You are now %d place in the queue", this.size);
 
         return true;
     }
 
     int pop(int index = 0) {
-        if (this.len == 0 || index >= this.len || index < 0) {
+        if (this.size == 0 || index >= this.size || index < 0) {
             return -1;
         }
 
         int value = this.data[index];
 
-        for (int i = index; i < this.len; i++) {
+        for (int i = index; i < this.size; i++) {
             this.data[i] = this.data[i + 1];
 
             if (0 != this.data[i]) {
@@ -184,19 +184,19 @@ enum struct Queue {
             }
         }
 
-        this.data[this.len--] = 0;
+        this.data[this.size--] = 0;
 
         return value;
     }
 
     void print_queue() {
-        for (int i = 0; i < this.len; i++) {
+        for (int i = 0; i < this.size; i++) {
             PrintToChatAll("data[%d] = %d", i, this.data[i]);
         }
     }
 
     int get_index(int client) {
-        for (int i = 0; i < this.len; i++) {
+        for (int i = 0; i < this.size; i++) {
             if (this.data[i] == client) {
                 return i;
             }

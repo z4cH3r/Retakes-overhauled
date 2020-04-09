@@ -312,8 +312,8 @@ void SetupTeams() {
 public void InsertQueuedPlayers() {
     int ingame_players = GetClientCountFix(true);
 
-    if (ingame_players <= MAX_INGAME_PLAYERS && g_ClientQueue.len > 0) {
-        while (g_ClientQueue.len > 0 && ingame_players <= MAX_INGAME_PLAYERS) {
+    if (ingame_players <= MAX_INGAME_PLAYERS && g_ClientQueue.size > 0) {
+        while (g_ClientQueue.size > 0 && ingame_players <= MAX_INGAME_PLAYERS) {
             CS_SwitchTeam(g_ClientQueue.pop(), GetNextTeamBalance());
             ingame_players = GetClientCountFix(true);
         }
