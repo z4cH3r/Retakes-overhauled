@@ -86,8 +86,10 @@ Action l_JoinTeam(int client, const char[] command, int argc) {
 }
 
 public Action e_OnPlayerChangeTeam(Event event, char[] name, bool dont_broadcast) {
-    dont_broadcast = true;  // Silent switchteam if live
-    // event.BroadcastDisabled = true;
+    event.BroadcastDisabled = false;
+    if ((GetRoundState() & ~RetakeNotLiveTypes()) && (GetEventInt(event, "team") != CS_TEAM_SPECTATOR)) {
+        event.BroadcastDisabled = true;
+    }
     return Plugin_Changed;
 }
 

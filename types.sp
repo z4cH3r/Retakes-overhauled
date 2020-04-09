@@ -7,7 +7,7 @@
 #define MAX_INPUT_SIZE 128
 #define MAX_CONVAR_SIZE 256
 
-#define WARMUP_TIME 5
+#define WARMUP_TIME 10
 #define WAITING_TIME 5
 #define VOTE_COOLDOWN_TIME 3
 

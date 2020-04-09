@@ -117,6 +117,10 @@ public void OnClientDisconnect_Post(int client) {
 }
 
 public void OnClientConnected(int client) {
+    if (IsFakeClient(client)) {
+        return;
+    }
+
     g_Client[client].last_command_time = GetEngineTime();
     ResetClientVotes(client);
 }
@@ -358,7 +362,7 @@ void SetupRound() {
         StripAllClientsWeapons(KNIFE_MASK);
         g_iBomber = GetRandomPlayer(GetTeamMatrix(CS_TEAM_T));
         if (-1 != g_iBomber) {
-            PrintToChatAll("%s Given bomb to %N", RETAKE_PREFIX, g_iBomber);
+            PrintToChatAll("%s Bomb given to %N", RETAKE_PREFIX, g_iBomber);
             GiveClientItemWeaponID(g_iBomber, C4);
         }
     }
