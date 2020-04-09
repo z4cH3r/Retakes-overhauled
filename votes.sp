@@ -26,7 +26,7 @@ int GetVoteIndex(RoundTypes type) {
 }
 
 bool IsVoteEnabled(RoundTypes type) {
-    return ((GetRoundCounter() > MINIMUM_PISTOL_ROUNDS) && GetRoundState() == type);
+    return ((GetRoundCounter() > MIN_PISTOL_ROUNDS) && GetRoundState() == type);
 }
 
 char[] GetVoteType(RoundTypes type) {
@@ -97,8 +97,8 @@ Action VoteHandler(int client, RoundTypes type) {
         return Plugin_Handled;
     }
     else { g_Client[client].last_command_time = GetEngineTime(); }
-    if (MINIMUM_PISTOL_ROUNDS >= GetRoundCounter()) { 
-        PrintToChat(client, "%s Can vote for %s only after %d rounds", RETAKE_PREFIX, GetVoteType(type), MINIMUM_PISTOL_ROUNDS);
+    if (MIN_PISTOL_ROUNDS >= GetRoundCounter()) { 
+        PrintToChat(client, "%s Can vote for %s only after %d rounds", RETAKE_PREFIX, GetVoteType(type), MIN_PISTOL_ROUNDS);
         return Plugin_Handled;
     }
 

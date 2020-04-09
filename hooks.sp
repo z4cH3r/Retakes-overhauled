@@ -22,8 +22,8 @@ void InitHooks() {
     HookEvent("player_hurt", e_OnPlayerDamaged);
     HookEvent("round_prestart", e_OnRoundPreStart);
     HookEvent("round_poststart", e_OnRoundPostStart);
+    HookEvent("player_connect_full", e_OnFullConnect);
     HookEvent("player_team", e_OnPlayerChangeTeam, EventHookMode_Pre);
-    HookEvent("player_connect_full", e_OnFullConnect, EventHookMode_Pre);
 
     /** Listeners **/
     AddCommandListener(l_JoinTeam, "jointeam");
@@ -56,8 +56,10 @@ Action l_JoinTeam(int client, const char[] command, int argc) {
     int source_team = GetClientTeam(client);
 
     // If retake isn't live, allow team transfers
-    if (GetRoundState() & RetakeNotLiveTypes()) {
-        // ChangeClientTeam(client, target_team);
+    if (GetRoundState() & (RETAKE_NOT_LIVE | TIMER_STARTED)) {
+        if (GetRoundState() != TIMER_STARTED) {
+            TryRetakeStart();
+        }
         return Plugin_Continue;
     }
 
@@ -87,7 +89,7 @@ Action l_JoinTeam(int client, const char[] command, int argc) {
 
 public Action e_OnPlayerChangeTeam(Event event, char[] name, bool dont_broadcast) {
     event.BroadcastDisabled = false;
-    if ((GetRoundState() & ~RetakeNotLiveTypes()) && (GetEventInt(event, "team") != CS_TEAM_SPECTATOR)) {
+    if ((GetRoundState() & ~RETAKE_NOT_LIVE) && (GetEventInt(event, "team") != CS_TEAM_SPECTATOR)) {
         event.BroadcastDisabled = true;
     }
     return Plugin_Changed;
@@ -134,6 +136,9 @@ public Action e_OnRoundPostStart(Event event, const char[] name, bool dontBroadc
 }
 
 public Action e_OnRoundEnd(Event event, char[] name, bool dontBroadcast) {
+    if (GetRoundState() & (RETAKE_NOT_LIVE | TIMER_STARTED | TIMER_STOPPED)) {
+        return Plugin_Continue;
+    }
     int winnerTeam = GetEventInt(event, "winner");
 
     if (CS_TEAM_CT == winnerTeam) {
@@ -180,9 +185,28 @@ public Action e_OnBombDefused(Event event, char[] name, bool dontBroadcast)
 }
 
 public Action e_OnFullConnect(Event event, char[] name, bool dontBroadcast) {
-    if (GetRoundState() & ~RetakeNotLiveTypes()) { 
-        int client = GetClientOfUserId(GetEventInt(event, "userid"));
+    int client = GetClientOfUserId(GetEventInt(event, "userid"));
+    if (GetRoundState() & ~RETAKE_NOT_LIVE) { 
         InsertClientIntoQueue(client);
+    }
+
+    PrintToChatAll("%s fak", RETAKE_PREFIX);
+    if (IsFakeClient(client)) {
+        return;
+    }
+
+    g_Client[client].last_command_time = GetEngineTime();
+    ResetClientVotes(client);
+
+    if (g_rtRoundState == WAITING) {
+        PrintToChatAll("%d", GetClientCountFix());
+        PrintToChatAll("%d", TryRetakeStart());
+    }
+}
+
+public void OnClientDisconnect_Post(int client) {
+    if ((GetClientCountFix() < MIN_PLAYERS) && (~RETAKE_NOT_LIVE & g_rtRoundState)) {
+        RetakeStop();
     }
 }
 

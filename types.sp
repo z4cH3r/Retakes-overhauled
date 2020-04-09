@@ -2,31 +2,38 @@
 #define TYPES_SP
 
 /********** Defines **********/
-#define MAX_VOTE_TYPES 28
+#define MAX_VOTE_TYPES          (28)
 
-#define MAX_INPUT_SIZE 128
-#define MAX_CONVAR_SIZE 256
+#define MAX_INPUT_SIZE          (128)
+#define MAX_CONVAR_SIZE         (256)
 
-#define WARMUP_TIME 10
-#define WAITING_TIME 5
-#define VOTE_COOLDOWN_TIME 3
+#define MAX_INGAME_PLAYERS      (9)
 
-#define VOTE_PERCENTAGE 60
-#define KIT_SPREAD_PERCENTAGE 70 // 1 == random, 2 == everyone
+#define WARMUP_TIME             (5)
+#define WAITING_TIME            (10)
+#define VOTE_COOLDOWN_TIME      (3)
 
-#define MINIMUM_PLAYERS 2
-#define MINIMUM_PISTOL_ROUNDS 2
+#define VOTE_PERCENTAGE         (60)
+#define KIT_SPREAD_PERCENTAGE   (70) // 1 == random, 2 == everyone
 
-#define WINSTREAK_MAX 6
+#define MIN_PLAYERS             (2)
+#define MIN_PISTOL_ROUNDS       (2)
 
-#define RETAKE_PREFIX "[Retakes]"
+#define WINSTREAK_MAX           (6)
+
+#define RETAKE_PREFIX           ("[Retakes]")
+
+#define CS_TEAM_ANY             (4) // Not in the original cstrike file
+
+
+#define RETAKE_NOT_LIVE (WARMUP | WAITING | EDIT)
 
 /********** Enums **********/
 enum SpawnType
 {
     CT          = 0x00000001,
     T           = 0x00000002,
-    BOMBER      = 0x00000002 | 0x00000004,
+    BOMBER      = 0x00000004 | 0x00000002, // | 0x00000002 because bomber is terror aswell
 };
 
 enum RoundTypes
@@ -34,10 +41,11 @@ enum RoundTypes
     WARMUP          = 0x00000001,
     WAITING         = 0x00000002,
     EDIT            = 0x00000004,
-    PISTOL_ROUND    = 0x00000008,
-    FULLBUY_ROUND   = 0x00000010,
-    DEAGLE_ROUND    = 0x00000020,
-    TIMER_END       = 0x00000040,
+    TIMER_STARTED   = 0x00000008,
+    TIMER_STOPPED   = 0x00000010,
+    PISTOL_ROUND    = 0x00000020,
+    FULLBUY_ROUND   = 0x00000040,
+    DEAGLE_ROUND    = 0x00000080,
 };
 
 enum WeaponsSlot
@@ -77,7 +85,7 @@ enum WeaponTypes {
     RIFLE_T_MASK    = 0x00003800,
     RIFLE_CT_MASK   = 0x00002700,
 
-    /** Utility / Misc **/
+    /** Utility **/
     FLASHBANG       = 0x00010000,
     SMOKEGRENADE    = 0x00020000,
     HEGRENADE       = 0x00040000,
@@ -88,6 +96,7 @@ enum WeaponTypes {
     UTILITY_T_MASK  = 0x002F0000,
     UTILITY_CT_MASK = 0x00370000,
 
+    /** Misc **/
     KNIFE           = 0x00400000,
     KNIFE_MASK      = 0x00400000,
     C4              = 0x00800000,

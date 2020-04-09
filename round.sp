@@ -13,14 +13,10 @@ bool g_bBombWasPlanted = false;
 bool g_bWarmupCountdown = false;
 bool g_bFullBuyTriggered = false;
 RoundTypes g_rtRoundState = WARMUP;
-float g_iWarmupTimerStart;
+float g_fWarmupTimerEnd;
 
 
 
-
-RoundTypes RetakeNotLiveTypes() {
-    return WARMUP | WAITING | EDIT;
-}
 
 /** Set / Get for included files only **/
 void SetIsCTWin(bool value) {
@@ -65,9 +61,10 @@ float GetTimerCountdown() {
 }
 
 bool TryRetakeStart() {
-    int clients_amount = GetClientCountFix();
-    if ((clients_amount >= MINIMUM_PLAYERS) && (g_rtRoundState & RetakeNotLiveTypes())) {
-        g_iWarmupTimerStart = GetEngineTime();
+    int clients_amount = GetClientCount(); // Using GetClientCount without fix for connecting players case
+    if ((clients_amount >= MIN_PLAYERS) && (g_rtRoundState & RETAKE_NOT_LIVE)) {
+        g_fWarmupTimerEnd = GetEngineTime() + GetTimerCountdown();
+        SetRoundState(TIMER_STARTED);
         CreateTimer(0.1, TimerCountdown, _, TIMER_REPEAT | TIMER_FLAG_NO_MAPCHANGE);
         return true;
     }
@@ -88,14 +85,14 @@ bool TryRetakeStart() {
 
 Action TimerCountdown(Handle timer)
 {
-    if (GetTimeDelta(g_iWarmupTimerStart) >= GetTimerCountdown()) {
+    if (GetEngineTime() >= g_fWarmupTimerEnd) {
         g_bWarmupCountdown = false;
-        SetRoundState(TIMER_END);
+        SetRoundState(TIMER_STOPPED);
 
         return Plugin_Stop;
     }
 
-    if ((GetTimeDelta(g_iWarmupTimerStart) >= (GetTimerCountdown() - 5)) && (!g_bWarmupCountdown)) {
+    if (((GetEngineTime() + 5.0) >= g_fWarmupTimerEnd) && (!g_bWarmupCountdown)) {
         g_bWarmupCountdown = true;
 
         // Set the 5 second countdown freeze
@@ -105,24 +102,9 @@ Action TimerCountdown(Handle timer)
         }  
     }
     
-    PrintHintTextToAll("%s starting in %.02f ", RETAKE_PREFIX, GetTimerCountdown() - GetTimeDelta(g_iWarmupTimerStart));	
+    PrintHintTextToAll("%s starting in %.02f ", RETAKE_PREFIX, g_fWarmupTimerEnd - GetEngineTime());	
     
     return Plugin_Continue;
-}
-
-public void OnClientDisconnect_Post(int client) {
-    if (GetClientCountFix() < MINIMUM_PLAYERS) {
-        RetakeStop();
-    }
-}
-
-public void OnClientConnected(int client) {
-    if (IsFakeClient(client)) {
-        return;
-    }
-
-    g_Client[client].last_command_time = GetEngineTime();
-    ResetClientVotes(client);
 }
 
 void ClearPlayerDamage() {
@@ -132,8 +114,8 @@ void ClearPlayerDamage() {
 }
 
 void SetupWaitingRound() {
-    if (GetClientCountFix() < MINIMUM_PLAYERS) {
-        PrintToChatAll("%s Waiting for more players (>= %d)", RETAKE_PREFIX, MINIMUM_PLAYERS);	
+    if (GetClientCountFix() < MIN_PLAYERS) {
+        PrintToChatAll("%s Waiting for more players (>= %d)", RETAKE_PREFIX, MIN_PLAYERS);	
     }
     else {
         TryRetakeStart();
@@ -141,19 +123,26 @@ void SetupWaitingRound() {
 }
 
 void SetupRoundEnd() {
-    if (!g_bBombWasPlanted && (g_rtRoundState & ~RetakeNotLiveTypes())) {
+    if (!g_bBombWasPlanted && (g_rtRoundState & ~RETAKE_NOT_LIVE)) {
         PrintToChatAll("%s %N hasn't planted the bomb and will be swapped to CT", RETAKE_PREFIX, g_iBomber);
-        int client = GetRandomPlayer(GetTeamMatrix(CS_TEAM_CT));
-        if (-1 != client) {
-            CS_SwitchTeam(client, CS_TEAM_T);
-        }
+    }
+}
+
+void SwapBomber() {
+    int client = GetRandomPlayer(GetTeamMatrix(CS_TEAM_CT));
+    if (-1 != client) {
+        CS_SwitchTeam(client, CS_TEAM_T);
         CS_SwitchTeam(g_iBomber, CS_TEAM_CT);
     }
 }
 
 void SetupPreRound() {
-    if (g_rtRoundState & RetakeNotLiveTypes()) {
+    if (g_rtRoundState & (RETAKE_NOT_LIVE | TIMER_STARTED | TIMER_STOPPED)) {
         return;
+    }
+
+    if (!g_bBombWasPlanted) {
+        SwapBomber();
     }
 
     SetupTeams();
@@ -258,6 +247,14 @@ void ScrambleTeams(bool sort_by_frags = true) {
     PopulateArrayList(players_matrix, GetTeamMatrix(CS_TEAM_T), GetPlayerCount(GetTeamMatrix(CS_TEAM_T)));
     PopulateArrayList(players_matrix, GetTeamMatrix(CS_TEAM_CT), GetPlayerCount(GetTeamMatrix(CS_TEAM_CT)));
 
+    // In case we scramble teams and we have 10 players, move 1 to spec --> 4v5
+    if (GetPlayerCount(GetTeamMatrix(CS_TEAM_ANY), true) > MAX_INGAME_PLAYERS) {
+        int client = GetRandomPlayer(GetTeamMatrix(CS_TEAM_ANY));
+        if (-1 != client) {
+            InsertClientIntoQueue(client);
+        }
+    }
+
     if (sort_by_frags) {
         // Bubble sorting the clients via frags
         for (int i = 1; i <= GetArraySize(players_matrix) - 1; i++) {
@@ -280,10 +277,10 @@ void ScrambleTeams(bool sort_by_frags = true) {
 
     for (int i = 0; i < GetArraySize(players_matrix); i++) {
         if (i % 2 == 0) {
-            CS_SwitchTeam(GetArrayCell(players_matrix, i), CS_TEAM_T);
+            CS_SwitchTeam(GetArrayCell(players_matrix, i), CS_TEAM_CT);
         }
         else {
-            CS_SwitchTeam(GetArrayCell(players_matrix, i), CS_TEAM_CT);
+            CS_SwitchTeam(GetArrayCell(players_matrix, i), CS_TEAM_T);
         }
     }
 
@@ -297,7 +294,7 @@ void SetupTeams() {
         SwitchTeams();
     }
 
-    if (g_rtRoundState == TIMER_END)
+    if (g_rtRoundState == TIMER_STOPPED)
     {
         ScrambleTeams(false);
     }
@@ -315,8 +312,8 @@ void SetupTeams() {
 public void InsertQueuedPlayers() {
     int ingame_players = GetClientCountFix(true);
 
-    if (ingame_players <= 9 && g_ClientQueue.len > 0) {
-        while (g_ClientQueue.len > 0 && ingame_players <= 9) {
+    if (ingame_players <= MAX_INGAME_PLAYERS && g_ClientQueue.len > 0) {
+        while (g_ClientQueue.len > 0 && ingame_players <= MAX_INGAME_PLAYERS) {
             CS_SwitchTeam(g_ClientQueue.pop(), GetNextTeamBalance());
             ingame_players = GetClientCountFix(true);
         }
@@ -325,29 +322,30 @@ public void InsertQueuedPlayers() {
 
 void BeforeSetupRound() {
     // If not live, do nothing
-    if (g_rtRoundState & RetakeNotLiveTypes()) {
+    if (g_rtRoundState & (RETAKE_NOT_LIVE | TIMER_STARTED)) {
         return;
     }
 
-    if (GetClientCountFix() < MINIMUM_PLAYERS) {
+    if (GetClientCountFix() < MIN_PLAYERS) {
         SetRoundState(WAITING);
         return;
     }
 
-    if (g_rtRoundState == TIMER_END) {
+    if (g_rtRoundState == TIMER_STOPPED) {
         SetRoundState(PISTOL_ROUND);
         InsertSpectateIntoServer();
         ServerCommand("mp_restartgame 1");
+        return;
     }
 
     int round_counter = GetTeamScore(CS_TEAM_T) + GetTeamScore(CS_TEAM_CT) + 1;
 
-    if (round_counter <= MINIMUM_PISTOL_ROUNDS) {
+    if (round_counter <= MIN_PISTOL_ROUNDS) {
         g_bFullBuyTriggered = false;
         SetRoundState(PISTOL_ROUND); // In case of rr or something   
     }
 
-    if (round_counter > MINIMUM_PISTOL_ROUNDS && !g_bFullBuyTriggered) {
+    if (round_counter > MIN_PISTOL_ROUNDS && !g_bFullBuyTriggered) {
         g_bFullBuyTriggered = true;
         SetRoundState(FULLBUY_ROUND);
     }
@@ -356,9 +354,8 @@ void BeforeSetupRound() {
 }
 
 void SetupRound() {
-
     // If we're live, strip and assign random terrorist the bomb
-    if (g_rtRoundState & ~RetakeNotLiveTypes()) {
+    if (g_rtRoundState & ~(RETAKE_NOT_LIVE | TIMER_STARTED | TIMER_STOPPED)) {
         StripAllClientsWeapons(KNIFE_MASK);
         g_iBomber = GetRandomPlayer(GetTeamMatrix(CS_TEAM_T));
         if (-1 != g_iBomber) {
@@ -366,6 +363,8 @@ void SetupRound() {
             GiveClientItemWeaponID(g_iBomber, C4);
         }
     }
+
+    PrintToChatAll("%s CS_TEAM_ANY = %d, client %N", RETAKE_PREFIX, GetPlayerCount(GetTeamMatrix(CS_TEAM_ANY)), GetRandomPlayer(GetTeamMatrix(CS_TEAM_ANY)));
 
     switch (g_rtRoundState) {
         case WAITING: {

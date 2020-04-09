@@ -37,7 +37,11 @@ int[] GetTeamMatrix(int team, bool is_playing_only = true) {
             continue;
         }
         
-        if ((IsClientInGamePlaying(i) || !is_playing_only) && (GetClientTeam(i) == team)) {
+        if (is_playing_only && !IsClientInGamePlaying(i)) {
+            continue;
+        }
+
+        if ((GetClientTeam(i) == team) || (CS_TEAM_ANY == team)) {
             team_matrix[index++] = i;
         }
     }
@@ -47,13 +51,15 @@ int[] GetTeamMatrix(int team, bool is_playing_only = true) {
 
 int GetPlayerCount(int[] team_matrix, bool alive_only = false) {
     int counter = 0;
-    for (int i = 0; i < MaxClients; i++) {
+    int i = 0;
+    while ((0 != team_matrix[i]) && (i < MaxClients)) { // This is okay because team_matrix is queue'ish
         if (0 != team_matrix[i]) {
-            if (alive_only && !IsPlayerAlive(i)) {
+            if (alive_only && !IsPlayerAlive(team_matrix[i])) {
                 continue;
             }
             counter++;
         }
+        i++;
     }
 
     return counter;
@@ -126,6 +132,7 @@ WeaponTypes GetRandomAwpSecondary(int client) {
 int GetClientCountFix(bool playing_only = false) {
     int player_count = GetPlayerCount(GetTeamMatrix(CS_TEAM_T));
     player_count += GetPlayerCount(GetTeamMatrix(CS_TEAM_CT));
+    
     if (!playing_only) {
         player_count += GetPlayerCount(GetTeamMatrix(CS_TEAM_SPECTATOR, false));
     }
@@ -220,14 +227,16 @@ void InsertSpectateIntoServer() {
     PopulateArrayList(spec_matrix, GetTeamMatrix(CS_TEAM_SPECTATOR, false), GetPlayerCount(GetTeamMatrix(CS_TEAM_SPECTATOR, false)));
 
     for (int i = 0; i < GetArraySize(spec_matrix); i++) {
-        ChangeClientTeam(GetArrayCell(spec_matrix, i), GetNextTeamBalance());
+        if (GetClientCountFix(true) <= MAX_INGAME_PLAYERS) {
+            ChangeClientTeam(GetArrayCell(spec_matrix, i), GetNextTeamBalance());
+        }
     }
 
     delete spec_matrix;
 }
 
 void InsertClientIntoQueue(int client) {
-    if (GetRoundState() & RetakeNotLiveTypes()) {
+    if (GetRoundState() & RETAKE_NOT_LIVE) {
         return;
     }
 

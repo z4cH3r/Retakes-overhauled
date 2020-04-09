@@ -63,10 +63,6 @@ public void OnPluginStart() {
     }
 }
 
-float GetTimeDelta(float start_time) {
-    return GetEngineTime() - start_time;
-}
-
 WeaponTypes MapWeaponSlotToType(WeaponsSlot weapon) {
     if (weapon == Slot_Secondary) {
         return PISTOL_MASK;
