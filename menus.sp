@@ -1,6 +1,8 @@
 #if !defined MENUS_SP
 #define MENUS_SP
 
+// TODO: REFACTOR FILE
+
 public Menu GetAwpMenu() {
     Menu AwpMenu = new Menu(MenuGunAwpHandler);
     AwpMenu.SetTitle("Would you like to play with awp?");

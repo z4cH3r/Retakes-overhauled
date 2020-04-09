@@ -1,15 +1,15 @@
 #if !defined VOTES_SP
 #define VOTES_SP
 
-public bool CanVote(int client) {
+bool CanVote(int client) {
     return (GetEngineTime() - g_Client[client].last_command_time) >= VOTE_COOLDOWN_TIME;
 }
 
-public int GetVotesAmountNeeded() {
+int GetVotesAmountNeeded() {
     return GetClientsAmountPercentage(VOTE_PERCENTAGE);
 }
 
-public int GetVotesAmount(RoundTypes type) {
+int GetVotesAmount(RoundTypes type) {
     int sum_votes = 0;
     for (int i = 1; i < MaxClients; i++) {
         if (!IsClientInGamePlaying(i)) {
@@ -21,11 +21,11 @@ public int GetVotesAmount(RoundTypes type) {
     return sum_votes;
 }
 
-public int GetVoteIndex(RoundTypes type) {
+int GetVoteIndex(RoundTypes type) {
     return GetPowOfTwo(view_as<int>(type));
 }
 
-public bool IsVoteEnabled(RoundTypes type) {
+bool IsVoteEnabled(RoundTypes type) {
     return ((GetRoundCounter() > MINIMUM_PISTOL_ROUNDS) && GetRoundState() == type);
 }
 
@@ -67,15 +67,15 @@ char[] GetVotePrefix(int client, RoundTypes type) {
     return msg;
 }
 
-public Action c_VotePistol(int client, int argc) {
+Action c_VotePistol(int client, int argc) {
     VoteHandler(client, PISTOL_ROUND);
 }
 
-public Action c_VoteDeagle(int client, int argc) {
+Action c_VoteDeagle(int client, int argc) {
     VoteHandler(client, DEAGLE_ROUND);
 }
 
-public void ResetAllClientsVote(RoundTypes type) {
+void ResetAllClientsVote(RoundTypes type) {
     for (int i = 1; i < MaxClients; i++) {
         if (!IsClientInGamePlaying(i)) {
                 continue;
@@ -84,15 +84,21 @@ public void ResetAllClientsVote(RoundTypes type) {
     }
 }
 
-public Action VoteHandler(int client, RoundTypes type) {
+void ResetClientVotes(int client) {
+    for (int i = 0; i < MAX_VOTE_TYPES; i++) {
+        g_Client[client].votes[i] = false;
+    }
+}
+
+Action VoteHandler(int client, RoundTypes type) {
     if (!IsClientInGamePlaying(client)) { return Plugin_Handled; }
     if (!CanVote(client)) {
-        PrintToChat(client, "[Retakes] Can vote only every %d seconds", VOTE_COOLDOWN_TIME);
+        PrintToChat(client, "%s Can vote only every %d seconds", RETAKE_PREFIX, VOTE_COOLDOWN_TIME);
         return Plugin_Handled;
     }
     else { g_Client[client].last_command_time = GetEngineTime(); }
-    if (GetRoundCounter() <= MINIMUM_PISTOL_ROUNDS) { 
-        PrintToChat(client, "[Retakes] Can vote for %s only after %d rounds", GetVoteType(type), MINIMUM_PISTOL_ROUNDS);
+    if (MINIMUM_PISTOL_ROUNDS >= GetRoundCounter()) { 
+        PrintToChat(client, "%s Can vote for %s only after %d rounds", RETAKE_PREFIX, GetVoteType(type), MINIMUM_PISTOL_ROUNDS);
         return Plugin_Handled;
     }
 
@@ -100,15 +106,15 @@ public Action VoteHandler(int client, RoundTypes type) {
     int votes_amount = GetVotesAmount(type);
     int votes_needed = GetVotesAmountNeeded();
 
-    PrintToChatAll("[Retakes] %N %s %s only (%d of %d required)", client, GetVotePrefix(client, type), GetVoteType(type), votes_amount, votes_needed);
+    PrintToChatAll("%s %N %s %s only (%d of %d required)", RETAKE_PREFIX, client, GetVotePrefix(client, type), GetVoteType(type), votes_amount, votes_needed);
 
     if (votes_amount >= GetVotesAmountNeeded()) {
         if (IsVoteEnabled(type)) {
-            PrintToChatAll("[Retakes] %s only disabled", GetVoteType(type));
+            PrintToChatAll("%s %s only disabled", RETAKE_PREFIX, GetVoteType(type));
             SetRoundState(FULLBUY_ROUND);
         }
         else {
-            PrintToChatAll("[Retakes] %s only enabled", GetVoteType(type));
+            PrintToChatAll("%s %s only enabled", RETAKE_PREFIX, GetVoteType(type));
             SetRoundState(type);
         }
         

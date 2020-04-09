@@ -3,11 +3,11 @@
 
 /********** Defines **********/
 #define MAX_VOTE_TYPES 28
-#define MAX_INPUT_SIZE 32
-#define MAX_CONVAR_SIZE 256
-#define MAX_COMMAND_SIZE 128
 
-#define WARMUP_TIME 10
+#define MAX_INPUT_SIZE 128
+#define MAX_CONVAR_SIZE 256
+
+#define WARMUP_TIME 5
 #define WAITING_TIME 5
 #define VOTE_COOLDOWN_TIME 3
 
@@ -19,7 +19,7 @@
 
 #define WINSTREAK_MAX 6
 
-
+#define RETAKE_PREFIX "[Retakes]"
 
 /********** Enums **********/
 enum SpawnType
@@ -96,6 +96,7 @@ enum WeaponTypes {
     DEFUSE_KIT_MASK = 0x01000000,
 }
 
+// If you add cookies, refer to line 61, 79 @ cookies.sp
 enum cookies {
     cAwp,
     cAwpSecondary,

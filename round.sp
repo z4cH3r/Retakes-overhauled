@@ -5,31 +5,54 @@
 #include "client.sp"
 
 
-RoundTypes g_rtRoundState = WARMUP;
-bool g_bIsCTWin = false;
-bool g_bFullBuyTriggered = false;
+int g_iBomber;
 int g_iWinStreak = 0;
 int g_iRoundCounter = 0;
-int g_iBomber;
-
-Handle g_hWarmupTimer = INVALID_HANDLE;
+bool g_bIsCTWin = false;
+bool g_bBombWasPlanted = false;
+bool g_bWarmupCountdown = false;
+bool g_bFullBuyTriggered = false;
+RoundTypes g_rtRoundState = WARMUP;
 float g_iWarmupTimerStart;
 
 
 
-public int GetRoundCounter() {
+
+RoundTypes RetakeNotLiveTypes() {
+    return WARMUP | WAITING | EDIT;
+}
+
+/** Set / Get for included files only **/
+void SetIsCTWin(bool value) {
+    g_bIsCTWin = value;
+}
+
+void SetTWinStreak(int value) {
+    g_iWinStreak = value;
+}
+
+int GetTWinStreak() {
+    return g_iWinStreak;
+}
+
+int GetRoundCounter() {
     return g_iRoundCounter;
 }
 
-public RoundTypes GetRoundState() {
+void SetWasBombPlanted(bool value) {
+    g_bBombWasPlanted = value;
+}
+
+RoundTypes GetRoundState() {
     return g_rtRoundState;
 }
 
-public void SetRoundState(RoundTypes state) {
+void SetRoundState(RoundTypes state) {
+    PrintToChatAll("%s Round state set to 0x%08x", RETAKE_PREFIX, state);
     g_rtRoundState = state;
 }
 
-public float GetWaitTime() {
+float GetTimerCountdown() {
     switch (g_rtRoundState) {
         case WARMUP: {
             return float(WARMUP_TIME);
@@ -41,49 +64,50 @@ public float GetWaitTime() {
     return 0.0;
 }
 
-void TryRetakeStart(bool is_on_connect = false) {
+bool TryRetakeStart() {
     int clients_amount = GetClientCountFix();
-    if (is_on_connect) {
-        clients_amount += 1;
-    }
-
-    if ((clients_amount >= MINIMUM_PLAYERS) || g_rtRoundState == WARMUP) {
+    if ((clients_amount >= MINIMUM_PLAYERS) && (g_rtRoundState & RetakeNotLiveTypes())) {
         g_iWarmupTimerStart = GetEngineTime();
-        g_hWarmupTimer = CreateTimer(0.1, TimerCountdown, _, TIMER_REPEAT | TIMER_FLAG_NO_MAPCHANGE);
+        CreateTimer(0.1, TimerCountdown, _, TIMER_REPEAT | TIMER_FLAG_NO_MAPCHANGE);
+        return true;
     }
-    else {
+    
+    return false;
+}
+
+ void RetakeStop() {
+    if (WAITING != g_rtRoundState) {
+
+        SetRoundState(WAITING);
+        PrintToChatAll("%s Not enough players, aborting retake", RETAKE_PREFIX);
+
         CS_TerminateRound(1.0, CSRoundEnd_Draw, false);
         ServerCommand("mp_restartgame 1");
     }
 }
 
-public void RetakeStop() {
-        g_rtRoundState = WAITING;
-        PrintHintTextToAll("[Retakes] Not enough players, aborting retake");
-
-        CS_TerminateRound(1.0, CSRoundEnd_Draw, false);
-        ServerCommand("mp_restartgame 1");
-}
-
-public Action TimerCountdown(Handle timer)
+Action TimerCountdown(Handle timer)
 {
-	if (GetTimeDelta(g_iWarmupTimerStart) >= GetWaitTime()) {
-        if (INVALID_HANDLE != g_hWarmupTimer) {
-            KillTimer(g_hWarmupTimer);
-        }
-        g_hWarmupTimer = INVALID_HANDLE;
-
-        g_rtRoundState = TIMER_END;
-        g_iRoundCounter = 0;
-
-        SetConVarInt(FindConVar("mp_warmuptime"), 5);
+    if (GetTimeDelta(g_iWarmupTimerStart) >= GetTimerCountdown()) {
+        g_bWarmupCountdown = false;
+        SetRoundState(TIMER_END);
 
         return Plugin_Stop;
     }
-	
-	PrintHintTextToAll("[Retakes] starting in %.02f ", GetWaitTime() - GetTimeDelta(g_iWarmupTimerStart));	
-	
-	return Plugin_Continue;
+
+    if ((GetTimeDelta(g_iWarmupTimerStart) >= (GetTimerCountdown() - 5)) && (!g_bWarmupCountdown)) {
+        g_bWarmupCountdown = true;
+
+        // Set the 5 second countdown freeze
+        SetConVarInt(FindConVar("mp_warmuptime"), 5);
+        if(0 == GameRules_GetProp("m_bWarmupPeriod")) {
+            ServerCommand("mp_warmup_start");
+        }  
+    }
+    
+    PrintHintTextToAll("%s starting in %.02f ", RETAKE_PREFIX, GetTimerCountdown() - GetTimeDelta(g_iWarmupTimerStart));	
+    
+    return Plugin_Continue;
 }
 
 public void OnClientDisconnect_Post(int client) {
@@ -93,70 +117,50 @@ public void OnClientDisconnect_Post(int client) {
 }
 
 public void OnClientConnected(int client) {
-    /** Maybe do stuff? **/
+    g_Client[client].last_command_time = GetEngineTime();
+    ResetClientVotes(client);
 }
 
-public void ClearPlayerDamage() {
+void ClearPlayerDamage() {
     for (int i = 1; i < MAXPLAYERS + 1; i++) {
         g_Client[i].round_damage = 0;
     }
 }
 
-public void SetupWaitingRound() {
+void SetupWaitingRound() {
     if (GetClientCountFix() < MINIMUM_PLAYERS) {
-        PrintToChatAll("[Retakes] Waiting for more players (>= %d)", MINIMUM_PLAYERS);	
+        PrintToChatAll("%s Waiting for more players (>= %d)", RETAKE_PREFIX, MINIMUM_PLAYERS);	
+    }
+    else {
+        TryRetakeStart();
     }
 }
 
-public void SetupPreRound() {
-    if (g_rtRoundState == WARMUP) {
-        return;
-    }
-
-    if (g_rtRoundState == TIMER_END) {
-        g_iRoundCounter = 0; // Init rounds (Can bug sometime with a weird restart spam)
-        g_rtRoundState = PISTOL_ROUND;
-    }
-
-    if (GetClientCountFix() < MINIMUM_PLAYERS) { 
-        PrintToChatAll("Return waiting");
-        g_rtRoundState = WAITING;
-        InsertQueuedPlayers();
-        if (GetClientCountFix() >= MINIMUM_PLAYERS) {
-            TryRetakeStart();
+void SetupRoundEnd() {
+    if (!g_bBombWasPlanted && (g_rtRoundState & ~RetakeNotLiveTypes())) {
+        PrintToChatAll("%s %N hasn't planted the bomb and will be swapped to CT", RETAKE_PREFIX, g_iBomber);
+        int client = GetRandomPlayer(GetTeamMatrix(CS_TEAM_CT));
+        if (-1 != client) {
+            CS_SwitchTeam(client, CS_TEAM_T);
         }
+        CS_SwitchTeam(g_iBomber, CS_TEAM_CT);
+    }
+}
+
+void SetupPreRound() {
+    if (g_rtRoundState & RetakeNotLiveTypes()) {
         return;
     }
 
-    g_iRoundCounter = GetTeamScore(CS_TEAM_T) + GetTeamScore(CS_TEAM_CT) + 1; // round 1 is 0
-    PrintToChatAll("Now entering round %d, round type %d", g_iRoundCounter, g_rtRoundState);
-
-    if (0 == g_iRoundCounter && !(g_rtRoundState == PISTOL_ROUND)) {
-        PrintToChatAll("[Retakes] Live");
-        PrintHintTextToAll("[Retakes] Live");        
-    }
-
-    if (!(g_rtRoundState & (WARMUP | WAITING | EDIT))) { 
-        SetupTeams();
-    }
-
-    if (g_iRoundCounter < MINIMUM_PISTOL_ROUNDS) {
-        g_bFullBuyTriggered = false;
-    }
-
-    PrintToChatAll("Round type %d, fullbuy triggered? %d", g_rtRoundState, g_bFullBuyTriggered);
-
-    if (g_iRoundCounter > MINIMUM_PISTOL_ROUNDS && !g_bFullBuyTriggered) {
-        g_bFullBuyTriggered = true;
-        g_rtRoundState = FULLBUY_ROUND;
-    }
-
+    SetupTeams();
     g_bIsCTWin = false;
     ClearPlayerDamage();
+    g_bBombWasPlanted = false;
 }
 
-public int GetTeamBalanceAmount(int team) {
-    int ret = -1;
+// Returns how many players SHOULD be on each team
+int GetTeamBalanceAmount(int team) {
+    int ret = 0;
 
     int clients = GetClientCountFix();
 
@@ -175,201 +179,189 @@ public int GetTeamBalanceAmount(int team) {
     return ret;
 }
 
-public void VerifyTeamBalance() {
-    int current_t_players = GetTeamClientCountFix(CS_TEAM_T, false);
-    int current_ct_players = GetTeamClientCountFix(CS_TEAM_CT, false);
-
-    int team_delta = current_ct_players - current_t_players;
-
-    if (team_delta > 1) { // More CT's than T's
-        for (int i = 0; i < (team_delta / 2); i++) {
-            CS_SwitchTeam(GetRandomPlayer(CS_TEAM_CT), CS_TEAM_T);
+// Checks whether delta of T's and CT's >= 1 towards the CT's
+void VerifyTeamBalance() {
+    int client;
+    int counter;
+    while ((CS_TEAM_T == GetNextTeamBalance()) && (counter++ < MaxClients)) {
+        PrintToChatAll("%s team %d teambalance", RETAKE_PREFIX, GetNextTeamBalance());
+        client = GetRandomPlayer(GetTeamMatrix(CS_TEAM_T));
+        if (-1 != client) {
+            CS_SwitchTeam(client, CS_TEAM_CT);
+            PrintToChatAll("%s Moved %N to CT due to autoteambalance", RETAKE_PREFIX, client);
         }
     }
-    if (team_delta < 0) { // More T's than CT's
-        for (int i = 0; i < -((team_delta / 2) + team_delta % 2); i++) {
-            CS_SwitchTeam(GetRandomPlayer(CS_TEAM_T), CS_TEAM_CT);
-        }
-    }
-
-    PrintToChatAll("T players balance %d", current_t_players);
-    PrintToChatAll("CT players balance %d", current_ct_players);
 }
 
-public int GetNextTeamBalance() {
-    int next_team = CS_TEAM_CT;
-    int current_t_players = GetTeamClientCountFix(CS_TEAM_T, false);
-    int current_ct_players = GetTeamClientCountFix(CS_TEAM_CT, false);
+// Returns which team would a player be assigned NEXT
+int GetNextTeamBalance() {
+    int next_team;
+    int current_t_players = GetPlayerCount(GetTeamMatrix(CS_TEAM_T));
+    int current_ct_players = GetPlayerCount(GetTeamMatrix(CS_TEAM_CT));
 
-    if (current_t_players >= current_ct_players) {
-        next_team = CS_TEAM_CT;
+    if (current_ct_players > current_t_players) {
+        next_team = CS_TEAM_T;
     }
     else {
-        next_team = CS_TEAM_T;
+        next_team = CS_TEAM_CT;
     }
 
     return next_team;
 }
 
-public int SwitchTeams() {
-    int index = 0;
-    int to_ct_clients[4];
-    int to_t_clients[4];
-    for (int i = 1; i < MaxClients; i++) {
-        if (index > 3) {
-            PrintToChatAll("Somehow more than 4 T players, contact @AE");
-            break;
-        }
-        if (IsClientInGame(i) && GetClientTeam(i) == CS_TEAM_T) {
-            to_ct_clients[index++] = i;
-            PrintToChatAll("to_ct_clients[%d] = %N to ct", index - 1, i);
-        }
+int SwitchTeams() {
+    ArrayList t_matrix = new ArrayList();
+    if (INVALID_HANDLE == t_matrix) { HandleError(); }
+
+    ArrayList ct_matrix = new ArrayList();
+    if (INVALID_HANDLE == ct_matrix) { HandleError(); }
+
+    PopulateArrayList(t_matrix, GetTeamMatrix(CS_TEAM_T), GetPlayerCount(GetTeamMatrix(CS_TEAM_T)));
+    PopulateArrayList(ct_matrix, GetTeamMatrix(CS_TEAM_CT), GetPlayerCount(GetTeamMatrix(CS_TEAM_CT)));
+
+    PrintToChatAll("Transferring %d players to ct", GetArraySize(t_matrix));
+
+    for (int i = 0; i < GetArraySize(t_matrix); i++) {
+        CS_SwitchTeam(GetArrayCell(t_matrix, i), CS_TEAM_CT);
     }
-    PrintToChatAll("Transferring %d to ct", index);
 
-    index = 0;
-    int damage;
-    int most_damage;
-    int most_damage_client = -1;
-    bool already_existing = false;
-    bool insert_arbitrary = false;
-
-    for (int i = 0; i < GetTeamBalanceAmount(CS_TEAM_T); i++) {
-        for (int j = 1; j < MaxClients; j++) {
-            if (!IsClientInGame(j) || GetClientTeam(j) != CS_TEAM_CT) {
-                continue;
-            }
-
-            damage = g_Client[j].round_damage;
-            if (damage > most_damage || insert_arbitrary) {
-                for (int k = 0; k < GetTeamBalanceAmount(CS_TEAM_T); k++) {
-                    if (to_t_clients[k] == j) {
-                        already_existing = true;
-                        break;
-                    }
-                }
-                if (already_existing) {
-                    already_existing = false;
-                    continue;
-                }
-
-                most_damage = damage;
-                most_damage_client = j;
-
-                if (insert_arbitrary) {
-                    break;
-                }
+    // bubble sorting the clients via round_damage
+    for (int i = 1; i <= GetArraySize(ct_matrix) - 1; i++) {
+        for (int j = 0; j <  GetArraySize(ct_matrix) - i; j++) {
+            if (g_Client[GetArrayCell(ct_matrix, j)].round_damage > g_Client[GetArrayCell(ct_matrix, j + 1)].round_damage) {
+                SwapArrayItems(ct_matrix, j, j + 1);
             }
         }
-
-        if (most_damage_client == -1 && insert_arbitrary == false) {
-            insert_arbitrary = true;
-            i -= 1;
-            continue;
-        }
-
-        PrintToChatAll("to_t_clients[%d] = %N to ct", i, most_damage_client);
-        to_t_clients[i] = most_damage_client;
-        most_damage_client = -1;
     }
-    PrintToChatAll("Transferring %d to t", GetTeamBalanceAmount(CS_TEAM_T));
 
-    for (int i = 0; i < 4; i++) {
-        if (to_ct_clients[i] > 0) {
-            CS_SwitchTeam(to_ct_clients[i], CS_TEAM_CT);
-        }
-        if (to_t_clients[i] > 0) {
-            CS_SwitchTeam(to_t_clients[i], CS_TEAM_T);
-        }
+    PrintToChatAll("%s Last round damage:", RETAKE_PREFIX);
+    for (int i = 0; i < GetArraySize(ct_matrix); i++) {
+        PrintToChatAll("%s %N with %d damage", RETAKE_PREFIX, GetArrayCell(ct_matrix, i), g_Client[GetArrayCell(ct_matrix, i)].round_damage);
     }
+
+    for (int i = 0; (i < GetTeamBalanceAmount(CS_TEAM_T)) && (i < GetArraySize(ct_matrix)); i++) {
+        CS_SwitchTeam(GetArrayCell(ct_matrix, i), CS_TEAM_T);
+    }
+
+    delete t_matrix;
+    delete ct_matrix;
 }
 
-public void ScrambleTeams() {
-    int temp;
-    int index = 0;
-    int clients_frag_sorted[MAXPLAYERS];
+void ScrambleTeams(bool sort_by_frags = true) {
+    ArrayList players_matrix = new ArrayList();
+    if (INVALID_HANDLE == players_matrix) { HandleError(); }
 
-    for (int i = 1; i < MAXPLAYERS; i++) {
-        if (!IsClientInGamePlaying(i)) {
-            continue;
-        }
-        clients_frag_sorted[index++] = i;
-    }
+    PopulateArrayList(players_matrix, GetTeamMatrix(CS_TEAM_T), GetPlayerCount(GetTeamMatrix(CS_TEAM_T)));
+    PopulateArrayList(players_matrix, GetTeamMatrix(CS_TEAM_CT), GetPlayerCount(GetTeamMatrix(CS_TEAM_CT)));
 
-    for (int i = 1; i <= GetClientCountFix() - 1; ++i) {
-        if (!IsClientInGamePlaying(clients_frag_sorted[i])) {
-            continue;
-        }
-        for (int j = 0; j < GetClientCountFix() - i; ++j) {
-            if (!IsClientInGamePlaying(clients_frag_sorted[j])) {
-                continue;
-            }
-            if (GetClientFrags(clients_frag_sorted[j]) < GetClientFrags(clients_frag_sorted[j + 1])) {
-                temp = clients_frag_sorted[j];
-                clients_frag_sorted[j] = clients_frag_sorted[j + 1];
-                clients_frag_sorted[j + 1] = temp;
+    if (sort_by_frags) {
+        // Bubble sorting the clients via frags
+        for (int i = 1; i <= GetArraySize(players_matrix) - 1; i++) {
+            for (int j = 0; j <  GetArraySize(players_matrix) - i; j++) {
+                if (GetClientFrags(GetArrayCell(players_matrix, j)) > GetClientFrags(GetArrayCell(players_matrix, j + 1))) {
+                    SwapArrayItems(players_matrix, j, j + 1);
+                }
             }
         }
+
+        // Print frag stats
+        PrintToChatAll("%s Scramble stats:", RETAKE_PREFIX);
+        for (int i = 0; i < GetArraySize(players_matrix); i++) {
+            PrintToChatAll("%s %d. %N with %d frags", RETAKE_PREFIX, i + 1, GetArrayCell(players_matrix, i), GetClientFrags(GetArrayCell(players_matrix, i)));
+        }
+    }
+    else {
+        SortADTArray(players_matrix, Sort_Random, Sort_Integer);
     }
 
-    index = 0;
-    int target_team = CS_TEAM_CT;
-    for (int i = 1; i < MAXPLAYERS; i++) {
-        if (!IsClientInGamePlaying(clients_frag_sorted[i]))  {
-            continue;
-        }
-
+    for (int i = 0; i < GetArraySize(players_matrix); i++) {
         if (i % 2 == 0) {
-            target_team = CS_TEAM_CT;
+            CS_SwitchTeam(GetArrayCell(players_matrix, i), CS_TEAM_T);
         }
         else {
-            target_team = CS_TEAM_T;
+            CS_SwitchTeam(GetArrayCell(players_matrix, i), CS_TEAM_CT);
         }
-        CS_SwitchTeam(clients_frag_sorted[i], target_team);
-        PrintToChatAll("Fragger[%d] = %N with %d frags!", i + 1, clients_frag_sorted[i], GetClientFrags(clients_frag_sorted[i]));
     }
+
+    delete players_matrix;
 }
 
-public void SetupTeams() {
-    if (g_bIsCTWin) {
+void SetupTeams() {
+    InsertQueuedPlayers();
+
+    if (g_bIsCTWin && g_bBombWasPlanted) {
         SwitchTeams();
     }
-    if (g_iWinStreak >= WINSTREAK_MAX) {
-        g_iWinStreak = 0;
-        ScrambleTeams();
+
+    if (g_rtRoundState == TIMER_END)
+    {
+        ScrambleTeams(false);
     }
 
     VerifyTeamBalance();
 
-    InsertQueuedPlayers();
+    if (g_iWinStreak > WINSTREAK_MAX) {
+        PrintToChatAll("%s Terrorist achieved maximum winstreak of %d, scrambling...", RETAKE_PREFIX, WINSTREAK_MAX);
+        g_iWinStreak = 0;
+        ScrambleTeams();
+    }
+
 }
 
 public void InsertQueuedPlayers() {
-    int ingame_players = GetClientCountFix();
+    int ingame_players = GetClientCountFix(true);
 
     if (ingame_players <= 9 && g_ClientQueue.len > 0) {
         while (g_ClientQueue.len > 0 && ingame_players <= 9) {
-            ChangeClientTeam(g_ClientQueue.pop(), GetNextTeamBalance());
-            ingame_players = GetClientCountFix();
+            CS_SwitchTeam(g_ClientQueue.pop(), GetNextTeamBalance());
+            ingame_players = GetClientCountFix(true);
         }
     }
 }
 
-public void SetupRound() {
-    /** Two special cases which we do not strip player **/
-    WeaponTypes mask = KNIFE_MASK;
-
-    if (g_rtRoundState & (WAITING | WARMUP)) {
-        mask |= PISTOL_MASK;
+void BeforeSetupRound() {
+    // If not live, do nothing
+    if (g_rtRoundState & RetakeNotLiveTypes()) {
+        return;
     }
 
-    StripAllClientsWeapons(mask);
-
-    if (!(g_rtRoundState & (WAITING | WARMUP))) {
-        g_iBomber = GetRandomPlayer(CS_TEAM_T);
-        GiveBombToPlayer(g_iBomber);
+    if (GetClientCountFix() < MINIMUM_PLAYERS) {
+        SetRoundState(WAITING);
+        return;
     }
-    
+
+    if (g_rtRoundState == TIMER_END) {
+        SetRoundState(PISTOL_ROUND);
+        InsertSpectateIntoServer();
+        ServerCommand("mp_restartgame 1");
+    }
+
+    int round_counter = GetTeamScore(CS_TEAM_T) + GetTeamScore(CS_TEAM_CT) + 1;
+
+    if (round_counter <= MINIMUM_PISTOL_ROUNDS) {
+        g_bFullBuyTriggered = false;
+        SetRoundState(PISTOL_ROUND); // In case of rr or something   
+    }
+
+    if (round_counter > MINIMUM_PISTOL_ROUNDS && !g_bFullBuyTriggered) {
+        g_bFullBuyTriggered = true;
+        SetRoundState(FULLBUY_ROUND);
+    }
+
+    PrintToChatAll("%s Started round %d (0x%08x)", RETAKE_PREFIX, round_counter, g_rtRoundState);
+}
+
+void SetupRound() {
+
+    // If we're live, strip and assign random terrorist the bomb
+    if (g_rtRoundState & ~RetakeNotLiveTypes()) {
+        StripAllClientsWeapons(KNIFE_MASK);
+        g_iBomber = GetRandomPlayer(GetTeamMatrix(CS_TEAM_T));
+        if (-1 != g_iBomber) {
+            PrintToChatAll("%s Given bomb to %N", RETAKE_PREFIX, g_iBomber);
+            GiveClientItemWeaponID(g_iBomber, C4);
+        }
+    }
 
     switch (g_rtRoundState) {
         case WAITING: {
@@ -393,7 +385,7 @@ public void SetupRound() {
 public void SetupDeagleRound() {
     /** Per player setup **/
     for (int i = 1; i <= MaxClients; i++) {
-        if (!IsClientInGamePlaying(i) || IsFakeClient(i)) {
+        if (!IsClientInGamePlaying(i)) {
             continue;
         }
 
@@ -407,7 +399,7 @@ public void SetupDeagleRound() {
 public void SetupPistolRound() {
     /** Per player setup **/
     for (int i = 1; i <= MaxClients; i++) {
-        if (!IsClientInGamePlaying(i) || IsFakeClient(i)) {
+        if (!IsClientInGamePlaying(i)) {
             continue;
         }
 
@@ -428,12 +420,12 @@ public void SetupPistolRound() {
 }
 
 public void SetupFullbuyRound() {
-    int awp_player_t = GetRandomAwpPlayer(CS_TEAM_T);   // Both of these CAN be 0 incase of an entire team which 
-    int awp_player_ct = GetRandomAwpPlayer(CS_TEAM_CT); // awp is selected to false
+    int awp_player_t = GetRandomAwpPlayer(GetTeamMatrix(CS_TEAM_T));   // Both of these CAN be 0 incase of an entire team which 
+    int awp_player_ct = GetRandomAwpPlayer(GetTeamMatrix(CS_TEAM_CT)); // awp is selected to false
 
     /** Per player setup **/
     for (int i = 1; i <= MaxClients; i++) {
-        if (!IsClientInGamePlaying(i) || IsFakeClient(i)) {
+        if (!IsClientInGamePlaying(i)) {
             continue;
         }
 
@@ -442,7 +434,7 @@ public void SetupFullbuyRound() {
 
         WeaponTypes weapon = WEAPON_NONE;
 
-        weapon |= GetRandomGrenades(i);
+        weapon = GetRandomGrenades(i);
 
         /** If AWP player **/
         if (i == awp_player_t || i == awp_player_ct) { 
@@ -465,18 +457,19 @@ public void SetupFullbuyRound() {
 }
 
 public void InitRetake() {
-    TryRetakeStart();
     ServerCommand("mp_warmuptime 120");
+    ServerCommand("mp_autoteambalance 1");
     ServerCommand("mp_warmup_start");
-    g_rtRoundState = WARMUP;
+    SetRoundState(WARMUP);
+    if (!TryRetakeStart()) {
+        RetakeStop();
+    }
 }
 
 public void OnMapStart() {
-
-    PrintToChatAll("OnMapStart()");
-    InitRetake();
-
     InitConvars();
+    
+    InitRetake();
 }
 
 #endif // ROUND_SP

@@ -3,18 +3,18 @@
 
 #include "main.sp"
 
-public void StripClientWeapons(int client, WeaponTypes exclude_slots) {
-    int weapon = -1;
-    bool remove_slots_exclude[5];
-
-    if(!IsClientInGame(client) || !IsPlayerAlive(client) || !(GetClientTeam(client) == CS_TEAM_T || GetClientTeam(client) == CS_TEAM_CT)) {
+void StripClientWeapons(int client, WeaponTypes exclude_slots) {
+    if(!IsClientInGamePlaying(client)) {
         return;
     }
 
-    for (int i = 0; i < 5; i++) {
+    int weapon = -1;
+    bool remove_slots_exclude[5];
+
+
+    for (int i = view_as<int>(Slot_Primary); i <= view_as<int>(Slot_Explosive); i++) {
         remove_slots_exclude[i] = (exclude_slots & MapWeaponSlotToType(view_as<WeaponsSlot>(i))) ? true : false;
     }
-
 
     for (int slot = 0; slot < 5; slot++) {
         if (remove_slots_exclude[slot]) {
@@ -29,73 +29,62 @@ public void StripClientWeapons(int client, WeaponTypes exclude_slots) {
     }
 }
 
-int GetTeamClientCountFix(int team, bool alive_only = true) {
-	int count = 0;
-	for (int i = 1; i < MaxClients; i++)
-	{
-		if(IsClientInGame(i) && GetClientTeam(i) == team) {
-            if (alive_only && !IsPlayerAlive(i)) {
-                continue;
-            }
-            count++;
-        }
-	}
-	return count;
-}
-
-public void GiveBombToPlayer(int client) {
-    if (0 != client && IsClientInGame(client)) {
-        GiveClientItemWeaponID(client, C4);
-    }
-}
-
-public int GetRandomPlayer(int team) {
+int[] GetTeamMatrix(int team, bool is_playing_only = true) {
     int index = 0;
-    int clients[MAXPLAYERS];
-    for (int i = 1; i <= MaxClients; i++) {
+    int team_matrix[MAXPLAYERS];
+    for (int i = 1; i < MaxClients; i++) {
         if (!IsClientInGame(i)) {
             continue;
         }
         
-        if (team == GetClientTeam(i)) {
-            clients[index++] = i;
+        if ((IsClientInGamePlaying(i) || !is_playing_only) && (GetClientTeam(i) == team)) {
+            team_matrix[index++] = i;
         }
     }
 
-    if (index > 0) {
-        // -- because index is increased after each insert and GetRandomInt is inclusive
-        index -= 1;
-    }
-
-    return clients[GetRandomInt(0, index)]; 
+    return team_matrix;
 }
 
-public int GetRandomAwpPlayer(int team) {
+int GetPlayerCount(int[] team_matrix, bool alive_only = false) {
+    int counter = 0;
+    for (int i = 0; i < MaxClients; i++) {
+        if (0 != team_matrix[i]) {
+            if (alive_only && !IsPlayerAlive(i)) {
+                continue;
+            }
+            counter++;
+        }
+    }
+
+    return counter;
+}
+
+int GetRandomPlayer(int[] team_matrix) {
+    if (0 == GetPlayerCount(team_matrix)) { 
+        return -1;
+    }
+
+    return team_matrix[GetURandomInt() % GetPlayerCount(team_matrix)]; 
+}
+
+int GetRandomAwpPlayer(int[] team_matrix) {
     int index = 0;
-    int clients[MAXPLAYERS];
-    for (int i = 1; i <= MaxClients; i++) {
-        if (!IsClientInGamePlaying(i) || IsFakeClient(i)) {
-            continue;
-        }
-        
-        if (team == GetClientTeam(i) && true == g_Client[i].pref.want_awp) {
-            clients[index++] = i;
+    int awp_users[MAXPLAYERS];
+    for (int i = 0; i < GetPlayerCount(team_matrix); i++) {
+        if (g_Client[team_matrix[i]].pref.want_awp) {
+            awp_users[index++] = team_matrix[i];
         }
     }
 
-    if (index > 0) {
-        // -- because index is increased after each insert and GetRandomInt is inclusive
-        index -= 1;
+    if (0 == index) {
+        index++;
     }
 
-    return clients[GetRandomInt(0, index)];
+    return awp_users[GetURandomInt() % index];
 }
 
-public WeaponTypes GetRandomGrenades(int client) {
+WeaponTypes GetRandomGrenades(int client) {
         int rand = GetURandomInt() % 6;
-
-        PrintToChatAll("Grenade random %d client %d", rand, client);
-
         switch (rand) {
             case 0: {
                 return FLASHBANG | FLASHBANG_2ND;
@@ -119,54 +108,39 @@ public WeaponTypes GetRandomGrenades(int client) {
         return WEAPON_NONE;
 }
 
-public WeaponTypes GetRandomAwpSecondary(int client) {
-    if (!IsClientInGamePlaying(client)) { return WEAPON_NONE; }
+WeaponTypes GetRandomAwpSecondary(int client) {
     int rand = GetURandomInt() % 3; // 33% chance
     WeaponTypes secondary = P250;
     
-    PrintToChatAll("rand = %d", rand);
     if (0 == rand) {
-        secondary = g_Client[client].pref.awp_secondary & ~P250;
+        // Can be (CZ | P250) || (FIVESEVEN | TEC9 | P250)
+        secondary = g_Client[client].pref.awp_secondary & ~P250; // --> (CZ) || (FIVESEVEN | TEC9)
+        // Removing team mask --> (CZ) || (is_terror) ? TEC9 : FIVESVEN
         WeaponTypes team_mask = (CS_TEAM_T == GetClientTeam(client)) ? PISTOL_T_MASK : PISTOL_CT_MASK;
         secondary = secondary & team_mask;
-        secondary = (secondary & CZ) ? CZ : secondary;
     }
 
     return secondary;
 }
 
-int GetClientCountFix(bool exclude_spec = true, bool exclude_fake_clients = true) {
-    int counter = 0;
+int GetClientCountFix(bool playing_only = false) {
+    int player_count = GetPlayerCount(GetTeamMatrix(CS_TEAM_T));
+    player_count += GetPlayerCount(GetTeamMatrix(CS_TEAM_CT));
+    if (!playing_only) {
+        player_count += GetPlayerCount(GetTeamMatrix(CS_TEAM_SPECTATOR, false));
+    }
 
+    return player_count;
+}
+
+void StripAllClientsWeapons(WeaponTypes slot_exception) {
     for (int i = 1; i < MaxClients; i++) {
-        if (!IsClientInGamePlaying(i)) {
-            continue;
-        }
-
-        if ((exclude_fake_clients && IsFakeClient(i)) || (exclude_spec && GetClientTeam(i) == CS_TEAM_SPECTATOR)) {
-            continue;
-        }
-
-        counter++;
-    }
-
-    return counter;
-}
-
-public void StripAllClientsWeapons(WeaponTypes slot_exception) {
-    for (int i = 1; i < MaxClients; i++) {
-        StripClientWeapons(i, slot_exception);
+        StripClientWeapons(i, slot_exception); // TODO: LOOK AT THIS
     }
 }
 
-public void GiveAllClientsWeapon(WeaponTypes weapon) {
-    for(int i = 1; i <= MaxClients; i++) {
-        GiveClientItemWeaponID(i, weapon);
-    }
-}
-
-public void GiveClientItemWeaponID(int client, WeaponTypes weapon_id) { 
-    if(!IsClientInGame(client) || !IsPlayerAlive(client) || !(GetClientTeam(client) == CS_TEAM_T || GetClientTeam(client) == CS_TEAM_CT)) {
+void GiveClientItemWeaponID(int client, WeaponTypes weapon_id) { 
+    if(!IsClientInGamePlaying(client)) {
         return;
     }
 
@@ -239,26 +213,42 @@ public void GiveClientItemWeaponID(int client, WeaponTypes weapon_id) {
         
 }
 
-public void InsertClientIntoQueue(int client) {
-    if (GetRoundState() & (WARMUP | WAITING)) {
+void InsertSpectateIntoServer() {
+    ArrayList spec_matrix = new ArrayList();
+    if (INVALID_HANDLE == spec_matrix) { HandleError(); }
+
+    PopulateArrayList(spec_matrix, GetTeamMatrix(CS_TEAM_SPECTATOR, false), GetPlayerCount(GetTeamMatrix(CS_TEAM_SPECTATOR, false)));
+
+    for (int i = 0; i < GetArraySize(spec_matrix); i++) {
+        ChangeClientTeam(GetArrayCell(spec_matrix, i), GetNextTeamBalance());
+    }
+
+    delete spec_matrix;
+}
+
+void InsertClientIntoQueue(int client) {
+    if (GetRoundState() & RetakeNotLiveTypes()) {
+        return;
+    }
+
+    if (!IsClientInGame(client)) {
         return;
     }
 
     ChangeClientTeam(client, CS_TEAM_SPECTATOR);
     g_ClientQueue.insert(client);
+}
 
-    if (GetClientCountFix() < MINIMUM_PLAYERS) {
-        RetakeStop();
+bool IsClientInGamePlaying(int client) {
+    if (0 == client) {
+        return false;
     }
+    return (IsClientInGame(client) && (CS_TEAM_T == GetClientTeam(client) || CS_TEAM_CT == GetClientTeam(client)));
 }
 
-public bool IsClientInGamePlaying(int client) {
-    return (IsClientInGame(client) && (GetClientTeam(client) == CS_TEAM_T || GetClientTeam(client) == CS_TEAM_CT));
-}
-
-public int GetClientsAmountPercentage(int percentage) {
+int GetClientsAmountPercentage(int percentage) {
     int client_count = GetClientCountFix();
-    return RoundToCeil(float(client_count) * (float(percentage) / 100.0));
+    return RoundToCeil(GetPercentage(client_count, percentage));
 }
 
 #endif // CLIENT_SP
