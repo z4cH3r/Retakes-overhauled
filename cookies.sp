@@ -38,6 +38,7 @@ Handle GetCookie(cookies cookie) {
 }
 
 void SetCookie(int client, cookies cookie, const char[] value) {
+    if (!IsClientValid(client)) { return; }
     PrintToChatAll("Setting cookie %d to %s", cookie, value);
     switch (cookie) {
         case cAwp: {
@@ -56,6 +57,7 @@ void SetCookie(int client, cookies cookie, const char[] value) {
 }
 
 bool AreCookiesExisting(int client) {
+    if (!IsClientValid(client)) { return false; }
     char pref[MAX_INPUT_SIZE];
 
     for (int i = view_as<int>(cAwp); i <= view_as<int>(cPrimaryCT); i++) { // IF YOU ADD MORE COOKIES, VERIFY THIS!
@@ -69,7 +71,7 @@ bool AreCookiesExisting(int client) {
 }
 
 void OnClientCookiesCached(int client) {
-    if (IsFakeClient(client) || 0 == client) {
+    if (IsFakeClient(client) || !IsClientValid(client)) {
         return;
     }
 

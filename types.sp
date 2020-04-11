@@ -6,50 +6,112 @@
 
 #define MAX_INPUT_SIZE          (128)
 #define MAX_CONVAR_SIZE         (256)
-
+#define MAX_SQL_QUERY_SIZE      (512)
+#define MAX_SPAWN_COUNT         (128)
+#define MAX_MAP_SIZE            (32)
 #define MAX_INGAME_PLAYERS      (9)
+#define MAX_DB_RETRIES          (20)
+#define MIN_PLAYERS             (2)
+#define MIN_PISTOL_ROUNDS       (2)
 
 #define WARMUP_TIME             (5)
+#define EDIT_TIME               (5)
 #define WAITING_TIME            (10)
 #define VOTE_COOLDOWN_TIME      (3)
 
 #define VOTE_PERCENTAGE         (60)
 #define KIT_SPREAD_PERCENTAGE   (70) // 1 == random, 2 == everyone
 
-#define MIN_PLAYERS             (2)
-#define MIN_PISTOL_ROUNDS       (2)
-
 #define WINSTREAK_MAX           (6)
 
 #define RETAKE_PREFIX           ("[Retakes]")
+#define RETAKE_CONFIG           ("retakes")
 
 #define CS_TEAM_ANY             (4) // Not in the original cstrike file
+#define CONSOLE_CLIENT          (0)
+
+#define FREEZETIME              (3)
+
+#define CT_MODEL                ("models/player/ctm_idf.mdl")
+#define T_MODEL                 ("models/player/tm_phoenix.mdl")
+#define BOMBER_MODEL            ("models/player/tm_pirate.mdl")
+#define ERROR_MODEL             ("models/error.mdl")
 
 
 #define RETAKE_NOT_LIVE (WARMUP | WAITING | EDIT)
 
 /********** Enums **********/
-enum SpawnType
-{
-    CT          = 0x00000001,
-    T           = 0x00000002,
-    BOMBER      = 0x00000004 | 0x00000002, // | 0x00000002 because bomber is terror aswell
+enum SpawnType {
+    SPAWNTYPE_NONE  = 0x00000000,
+    BOMBER          = 0x00000001,
+    T               = 0x00000002, // Same as CS_TEAM_T
+    CT              = 0x00000003, // Same as CS_TEAM_CT
 };
 
-enum RoundTypes
-{
-    WARMUP          = 0x00000001,
-    WAITING         = 0x00000002,
-    EDIT            = 0x00000004,
-    TIMER_STARTED   = 0x00000008,
-    TIMER_STOPPED   = 0x00000010,
-    PISTOL_ROUND    = 0x00000020,
-    FULLBUY_ROUND   = 0x00000040,
-    DEAGLE_ROUND    = 0x00000080,
-};
+enum struct SpawnModels {
+    int t_model;
+    int ct_model;
+    int bomber_model;
+    int error_model;
+}
 
-enum WeaponsSlot
-{
+enum Bombsite {
+    A               = 0x00000000,
+    B               = 0x00000001,
+    BOMBSITE_NONE   = 0x00000002, // Not 0 because of legacy DB's we want to support
+}
+
+enum struct Axis {
+    float x;
+    float y;
+    float z;
+    float formatted[3];
+
+    void Initialize() {
+        this.x = 0.0;
+        this.y = 0.0;
+        this.z = 0.0;
+    }
+
+    void ToFormat() {
+        this.formatted[0] = this.x;
+        this.formatted[1] = this.y;
+        this.formatted[2] = this.z;
+    }
+}
+
+enum struct Spawn {
+    int id;
+	bool is_used;
+    bool is_initialized;
+	Bombsite bombsite;
+	SpawnType spawn_type;
+	Axis spawn_angles;
+	Axis spawn_location;
+
+    void Initialize() {
+        this.id = -1;
+        this.is_used = false;
+        this.is_initialized = false;
+        this.bombsite = BOMBSITE_NONE;
+        this.spawn_type = SPAWNTYPE_NONE;
+        this.spawn_angles.Initialize();
+        this.spawn_location.Initialize();
+    }
+}
+
+enum RoundTypes {
+    WARMUP          = 1 << 0,
+    WAITING         = 1 << 1,
+    EDIT            = 1 << 2,
+    TIMER_STARTED   = 1 << 3,
+    TIMER_STOPPED   = 1 << 4,
+    PISTOL_ROUND    = 1 << 5,
+    FULLBUY_ROUND   = 1 << 6,
+    DEAGLE_ROUND    = 1 << 7,
+}
+
+enum WeaponsSlot {
     Slot_Invalid        = -1,   /** Invalid weapon (slot). */
     Slot_Primary        = 0,    /** Primary weapon slot. */
     Slot_Secondary      = 1,    /** Secondary weapon slot. */
@@ -148,7 +210,7 @@ enum struct Queue {
     int size;
 
     bool insert(int client) {
-        if (IsClientSourceTV(client)) {
+        if (!IsClientValid(client)) {
             return false;
         }
 

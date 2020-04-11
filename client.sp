@@ -4,6 +4,7 @@
 #include "main.sp"
 
 void StripClientWeapons(int client, WeaponTypes exclude_slots) {
+    if (!IsClientValid(client)) { return; }
     if(!IsClientInGamePlaying(client)) {
         return;
     }
@@ -83,13 +84,14 @@ int GetRandomAwpPlayer(int[] team_matrix) {
     }
 
     if (0 == index) {
-        index++;
+        return -1;
     }
 
     return awp_users[GetURandomInt() % index];
 }
 
 WeaponTypes GetRandomGrenades(int client) {
+        if (!IsClientValid(client)) { return WEAPON_NONE; }
         int rand = GetURandomInt() % 6;
         switch (rand) {
             case 0: {
@@ -115,6 +117,7 @@ WeaponTypes GetRandomGrenades(int client) {
 }
 
 WeaponTypes GetRandomAwpSecondary(int client) {
+    if (!IsClientValid(client)) { return WEAPON_NONE; }
     int rand = GetURandomInt() % 3; // 33% chance
     WeaponTypes secondary = P250;
     
@@ -132,7 +135,7 @@ WeaponTypes GetRandomAwpSecondary(int client) {
 int GetClientCountFix(bool playing_only = false) {
     int player_count = GetPlayerCount(GetTeamMatrix(CS_TEAM_T));
     player_count += GetPlayerCount(GetTeamMatrix(CS_TEAM_CT));
-    
+
     if (!playing_only) {
         player_count += GetPlayerCount(GetTeamMatrix(CS_TEAM_SPECTATOR, false));
     }
@@ -142,11 +145,12 @@ int GetClientCountFix(bool playing_only = false) {
 
 void StripAllClientsWeapons(WeaponTypes slot_exception) {
     for (int i = 1; i < MaxClients; i++) {
-        StripClientWeapons(i, slot_exception); // TODO: LOOK AT THIS
+        StripClientWeapons(i, slot_exception);
     }
 }
 
 void GiveClientItemWeaponID(int client, WeaponTypes weapon_id) { 
+    if (!IsClientValid(client)) { return; }
     if(!IsClientInGamePlaying(client)) {
         return;
     }
@@ -222,12 +226,17 @@ void GiveClientItemWeaponID(int client, WeaponTypes weapon_id) {
 
 void InsertSpectateIntoServer() {
     ArrayList spec_matrix = new ArrayList();
-    if (INVALID_HANDLE == spec_matrix) { HandleError(); }
+    if (INVALID_HANDLE == spec_matrix) { 
+        SetFailState("%s Could not allocate memory for spec_matrix @ InsertSpectateIntoServer", RETAKE_PREFIX);
+    }
 
     PopulateArrayList(spec_matrix, GetTeamMatrix(CS_TEAM_SPECTATOR, false), GetPlayerCount(GetTeamMatrix(CS_TEAM_SPECTATOR, false)));
+    PopulateArrayList(spec_matrix, GetTeamMatrix(CS_TEAM_NONE, false), GetPlayerCount(GetTeamMatrix(CS_TEAM_NONE, false)));
 
     for (int i = 0; i < GetArraySize(spec_matrix); i++) {
-        if (GetClientCountFix(true) <= MAX_INGAME_PLAYERS) {
+        if (GetClientCountFix(true) < MAX_INGAME_PLAYERS) {
+            // Remove client from queue if existing
+            g_ClientQueue.pop(g_ClientQueue.get_index(i));
             ChangeClientTeam(GetArrayCell(spec_matrix, i), GetNextTeamBalance());
         }
     }
@@ -235,7 +244,12 @@ void InsertSpectateIntoServer() {
     delete spec_matrix;
 }
 
+bool IsClientValid(int client) {
+    return ((CONSOLE_CLIENT != client) && (IsClientInGame(client) && !IsClientSourceTV(client)));
+}
+
 void InsertClientIntoQueue(int client) {
+    if (!IsClientValid(client)) { return; }
     if (GetRoundState() & RETAKE_NOT_LIVE) {
         return;
     }
@@ -249,9 +263,10 @@ void InsertClientIntoQueue(int client) {
 }
 
 bool IsClientInGamePlaying(int client) {
-    if (0 == client) {
+    if (!IsClientValid(client)) {
         return false;
     }
+
     return (IsClientInGame(client) && (CS_TEAM_T == GetClientTeam(client) || CS_TEAM_CT == GetClientTeam(client)));
 }
 

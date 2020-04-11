@@ -5,14 +5,6 @@
 #include "round.sp"
 #include "types.sp"
 
-/** Convars **/
-Handle g_hFreeArmor = INVALID_HANDLE;
-Handle g_hStartMoney = INVALID_HANDLE;
-Handle g_hForcePickTime = INVALID_HANDLE;
-Handle g_hTeamCashAwards = INVALID_HANDLE;
-Handle g_hPlayerCashAwards = INVALID_HANDLE;
-Handle g_hDefuserAllocation = INVALID_HANDLE;
-
 
 
 void InitHooks() {
@@ -27,25 +19,10 @@ void InitHooks() {
 
     /** Listeners **/
     AddCommandListener(l_JoinTeam, "jointeam");
-
-    /** Convar Hooks **/
-    g_hFreeArmor = FindConVar("mp_free_armor");
-    g_hStartMoney = FindConVar("mp_startmoney");
-    g_hForcePickTime = FindConVar("mp_force_pick_time");
-    g_hTeamCashAwards = FindConVar("mp_teamcashawards");
-    g_hPlayerCashAwards = FindConVar("mp_playercashawards");
-    g_hDefuserAllocation = FindConVar("mp_defuser_allocation");
-    // ammo_grenade_limit_flashbang 2
-    HookConVarChange(g_hFreeArmor, ConVarChange_Handler);
-    HookConVarChange(g_hStartMoney, ConVarChange_Handler);
-    HookConVarChange(g_hForcePickTime, ConVarChange_Handler);
-    HookConVarChange(g_hTeamCashAwards, ConVarChange_Handler);
-    HookConVarChange(g_hPlayerCashAwards, ConVarChange_Handler);
-    HookConVarChange(g_hDefuserAllocation, ConVarChange_Handler);
 }
 
 Action l_JoinTeam(int client, const char[] command, int argc) {
-    if (0 == client) {
+    if (!IsClientValid(client)) {
         return Plugin_Continue;
     }
 
@@ -83,43 +60,15 @@ Action l_JoinTeam(int client, const char[] command, int argc) {
             return Plugin_Handled;
         }
     }
-    
     return Plugin_Handled;
 }
 
 public Action e_OnPlayerChangeTeam(Event event, char[] name, bool dont_broadcast) {
     event.BroadcastDisabled = false;
-    if ((GetRoundState() & ~RETAKE_NOT_LIVE) && (GetEventInt(event, "team") != CS_TEAM_SPECTATOR)) {
+    if ((GetRoundState() & ~(RETAKE_NOT_LIVE | TIMER_STARTED)) && (GetEventInt(event, "team") != CS_TEAM_SPECTATOR)) {
         event.BroadcastDisabled = true;
     }
     return Plugin_Changed;
-}
-
-/** Enforce server cvars **/
-public void ConVarChange_Handler(Handle convar, const char[] old_value, const char[] new_value) {
-    if (0 != GetConVarInt(g_hFreeArmor)) {
-        SetConVarInt(g_hFreeArmor, 0);
-    }
-    
-    if (0 != GetConVarInt(g_hTeamCashAwards)) {
-        SetConVarInt(g_hTeamCashAwards, 0);
-    }
-
-    if (0 != GetConVarInt(g_hPlayerCashAwards)) {
-        SetConVarInt(g_hPlayerCashAwards, 0);
-    }
-
-    if (0 != GetConVarInt(g_hStartMoney)) {
-        SetConVarInt(g_hStartMoney, 0);
-    }
-
-    if (0 != GetConVarInt(g_hForcePickTime)) {
-        SetConVarInt(g_hForcePickTime, 0);
-    }
-
-    if (0 != GetConVarInt(g_hDefuserAllocation)) {
-        SetConVarInt(g_hDefuserAllocation, 2);
-    }
 }
 
 public Action e_OnRoundPreStart(Event event, const char[] name, bool dontBroadcast) {
@@ -164,9 +113,7 @@ public Action e_OnRoundEnd(Event event, char[] name, bool dontBroadcast) {
 public Action e_OnPlayerDamaged(Event event, char[] name, bool dontBroadcast)
 {
     int client = GetClientOfUserId(GetEventInt(event, "attacker"));
-    if (0 == client) {
-        return;
-    }
+    if (!IsClientValid(client)) { return; }
 
     int damage = GetEventInt(event, "dmg_health");
     if (GetClientTeam(client) == CS_TEAM_CT) {
@@ -176,21 +123,23 @@ public Action e_OnPlayerDamaged(Event event, char[] name, bool dontBroadcast)
 
 public Action e_OnBombDefused(Event event, char[] name, bool dontBroadcast)
 {
-	int client = GetClientOfUserId(GetEventInt(event, "userid"));
-	if(GetPlayerCount(GetTeamMatrix(CS_TEAM_T), true) > 0)
-	{
-		PrintToChatAll("%s %N has ninja defused!", RETAKE_PREFIX, client);
-		g_Client[client].round_damage += 400;
-	}
+    int client = GetClientOfUserId(GetEventInt(event, "userid"));
+    if (!IsClientValid(client)) { return; }
+
+    if(GetPlayerCount(GetTeamMatrix(CS_TEAM_T), true) > 0)
+    {
+        PrintToChatAll("%s %N has ninja defused!", RETAKE_PREFIX, client);
+        g_Client[client].round_damage += 400;
+    }
 }
 
 public Action e_OnFullConnect(Event event, char[] name, bool dontBroadcast) {
     int client = GetClientOfUserId(GetEventInt(event, "userid"));
+    if (!IsClientValid(client)) { return; }
     if (GetRoundState() & ~RETAKE_NOT_LIVE) { 
         InsertClientIntoQueue(client);
     }
 
-    PrintToChatAll("%s fak", RETAKE_PREFIX);
     if (IsFakeClient(client)) {
         return;
     }
@@ -199,15 +148,17 @@ public Action e_OnFullConnect(Event event, char[] name, bool dontBroadcast) {
     ResetClientVotes(client);
 
     if (g_rtRoundState == WAITING) {
-        PrintToChatAll("%d", GetClientCountFix());
-        PrintToChatAll("%d", TryRetakeStart());
+        TryRetakeStart();
     }
 }
 
 public void OnClientDisconnect_Post(int client) {
+    if (!IsClientValid(client)) { return; }
     if ((GetClientCountFix() < MIN_PLAYERS) && (~RETAKE_NOT_LIVE & g_rtRoundState)) {
         RetakeStop();
     }
+    
+    // Remove client from queue if existing
     g_ClientQueue.pop(g_ClientQueue.get_index(client));
 }
 

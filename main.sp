@@ -14,17 +14,24 @@
 /** Cross file globals **/
 Client g_Client[MAXPLAYERS + 1];
 Queue g_ClientQueue;
+char g_sCurrentMap[MAX_MAP_SIZE];
+Spawn g_Spawns[MAX_SPAWN_COUNT];
+SpawnModels g_SpawnModels;
 
 #include "round.sp"
 #include "hooks.sp"
 #include "votes.sp"
 #include "menus.sp"
 #include "cookies.sp"
+#include "commands.sp"
 #include "plugin_info.sp"
+#include "spawn_points.sp"
 
 
 
 void InitConsoleCMDs() {
+    InitAdminCMDs();
+
     RegConsoleCmd("sm_guns", MenuGunPref);
     RegConsoleCmd("sm_vp", c_VotePistol);
     RegConsoleCmd("sm_vd", c_VoteDeagle);
@@ -38,8 +45,12 @@ void InitConvars() {
     SetConVarInt(FindConVar("mp_force_pick_time"), 0);
     SetConVarInt(FindConVar("mp_playercashawards"), 0);
     SetConVarInt(FindConVar("mp_defuser_allocation"), 2);
+    SetConVarInt(FindConVar("mp_freezetime"), FREEZETIME);
+    SetConVarFloat(FindConVar("mp_roundtime"), 0.15);
     SetConVarFloat(FindConVar("mp_roundtime_defuse"), 0.15);
     SetConVarFloat(FindConVar("mp_roundtime_hostage"), 0.15);
+    SetConVarFloat(FindConVar("mp_round_restart_delay"), 2.0);
+    SetConVarString(FindConVar("ammo_grenade_limit_flashbang"), "2");
 
 }
 
@@ -84,6 +95,10 @@ WeaponTypes MapWeaponSlotToType(WeaponsSlot weapon) {
 
 int GetPowOfTwo(int num) {
     int counter = 0;
+    if (num <= 0) {
+        return counter;
+    }
+
     while (1 != num) {
         num /= 2;
         counter++;
@@ -92,7 +107,7 @@ int GetPowOfTwo(int num) {
     return counter;
 }
 
-float GetPercentage(int value, int percentage) { // TODO: REMOVE STOCK
+float GetPercentage(int value, int percentage) {
     return float(value) * (float(percentage) / 100.0);
 }
 
@@ -100,13 +115,6 @@ void PopulateArrayList(ArrayList ar, any[] list, int size) { // You must check s
     for (int i = 0; i < size; i++) {
         PushArrayCell(ar, list[i]);
     }
-}
-
-void HandleError() {
-    PrintToChatAll("%s An error has occured, most likely server out of memory, aborting retake", RETAKE_PREFIX);
-    SetRoundState(WAITING);
-    CS_TerminateRound(1.0, CSRoundEnd_Draw, false);
-    ServerCommand("mp_restartgame 1");
 }
 
 #endif // MAIN_SP

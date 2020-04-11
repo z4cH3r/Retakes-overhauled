@@ -85,15 +85,16 @@ void ResetAllClientsVote(RoundTypes type) {
 }
 
 void ResetClientVotes(int client) {
-    for (int i = 0; i < MAX_VOTE_TYPES; i++) {
+    for (int i = 1; i < MAX_VOTE_TYPES; i++) {
         g_Client[client].votes[i] = false;
     }
 }
 
 Action VoteHandler(int client, RoundTypes type) {
+    if (CONSOLE_CLIENT == client) { return Plugin_Handled; }
     if (!IsClientInGamePlaying(client)) { return Plugin_Handled; }
     if (!CanVote(client)) {
-        PrintToChat(client, "%s Can vote only every %d seconds", RETAKE_PREFIX, VOTE_COOLDOWN_TIME);
+        PrintToChat(client, "%s You can vote only every %d seconds", RETAKE_PREFIX, VOTE_COOLDOWN_TIME);
         return Plugin_Handled;
     }
     else { g_Client[client].last_command_time = GetEngineTime(); }
