@@ -7,7 +7,7 @@
 #define MAX_INPUT_SIZE          (128)
 #define MAX_CONVAR_SIZE         (256)
 #define MAX_SQL_QUERY_SIZE      (512)
-#define MAX_SPAWN_COUNT         (128)
+#define MAX_SPAWN_COUNT         (64)
 #define MAX_MAP_SIZE            (32)
 #define MAX_INGAME_PLAYERS      (9)
 #define MAX_DB_RETRIES          (20)
@@ -81,7 +81,8 @@ enum struct Axis {
 }
 
 enum struct Spawn {
-    int id;
+    int sql_id;
+    int ent_id;
 	bool is_used;
     bool is_initialized;
 	Bombsite bombsite;
@@ -90,7 +91,8 @@ enum struct Spawn {
 	Axis spawn_location;
 
     void Initialize() {
-        this.id = -1;
+        this.sql_id = -1;
+        this.ent_id = -1;
         this.is_used = false;
         this.is_initialized = false;
         this.bombsite = BOMBSITE_NONE;
@@ -203,6 +205,8 @@ enum struct Client {
     int round_damage;
     float last_command_time;
     bool votes[MAX_VOTE_TYPES];
+    bool edit_menu_opened;
+    bool spawnpoint_tele;
 }
 
 enum struct Queue {
@@ -226,7 +230,7 @@ enum struct Queue {
         this.data[this.size] = client;
     
         this.size++;
-        PrintToChat(client, "You are now %d place in the queue", this.size);
+        PrintToChat(client, "%s You are now %d place in the queue", RETAKE_PREFIX, this.size);
 
         return true;
     }
@@ -242,7 +246,7 @@ enum struct Queue {
             this.data[i] = this.data[i + 1];
 
             if (0 != this.data[i]) {
-                PrintToChat(this.data[i], "You are now %d place in the queue", i + 1);
+                PrintToChat(this.data[i], "%s You are now %d place in the queue", RETAKE_PREFIX, i + 1);
             }
         }
 
@@ -251,7 +255,7 @@ enum struct Queue {
         return value;
     }
 
-    void print_queue() {
+    void print_queue() { // TODO: CHECK THIS
         for (int i = 0; i < this.size; i++) {
             PrintToChatAll("data[%d] = %d", i, this.data[i]);
         }

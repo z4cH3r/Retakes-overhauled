@@ -22,9 +22,12 @@ void StripClientWeapons(int client, WeaponTypes exclude_slots) {
             continue;
         }
 
-        while((weapon = GetPlayerWeaponSlot(client, slot)) != -1) {
-            if(IsValidEntity(weapon)) {
-                RemovePlayerItem(client, weapon);
+        for (int j = 0; j < 10; j++) {
+            weapon = GetPlayerWeaponSlot(client, slot);
+            if (-1 != weapon) {
+                if(IsValidEntity(weapon)) {
+                    RemovePlayerItem(client, weapon);
+                }
             }
         }
     }
@@ -54,13 +57,10 @@ int GetPlayerCount(int[] team_matrix, bool alive_only = false) {
     int counter = 0;
     int i = 0;
     while ((0 != team_matrix[i]) && (i < MaxClients)) { // This is okay because team_matrix is queue'ish
-        if (0 != team_matrix[i]) {
-            if (alive_only && !IsPlayerAlive(team_matrix[i])) {
-                continue;
-            }
-            counter++;
+        if (!IsPlayerAlive(team_matrix[i++]) && alive_only) {
+            continue;
         }
-        i++;
+        counter++;
     }
 
     return counter;
@@ -127,6 +127,9 @@ WeaponTypes GetRandomAwpSecondary(int client) {
         // Removing team mask --> (CZ) || (is_terror) ? TEC9 : FIVESVEN
         WeaponTypes team_mask = (CS_TEAM_T == GetClientTeam(client)) ? PISTOL_T_MASK : PISTOL_CT_MASK;
         secondary = secondary & team_mask;
+        if (WEAPON_NONE == secondary) { // Incase of P250 only
+            secondary = P250;
+        }
     }
 
     return secondary;
@@ -221,7 +224,6 @@ void GiveClientItemWeaponID(int client, WeaponTypes weapon_id) {
     if (weapon_id & FLASHBANG_2ND) {
             GivePlayerItem(client, "weapon_flashbang");          
         }
-        
 }
 
 void InsertSpectateIntoServer() {
@@ -245,7 +247,7 @@ void InsertSpectateIntoServer() {
 }
 
 bool IsClientValid(int client) {
-    return ((CONSOLE_CLIENT != client) && (IsClientInGame(client) && !IsClientSourceTV(client)));
+    return ((CONSOLE_CLIENT < client) && (IsClientInGame(client) && !IsClientSourceTV(client) && !IsFakeClient(client)));
 }
 
 void InsertClientIntoQueue(int client) {

@@ -7,6 +7,8 @@ void InitAdminCMDs() {
     RegAdminCmd("sm_edit", c_EnableEdit, ADMFLAG_ROOT);
     RegAdminCmd("sm_start", c_StartRetake, ADMFLAG_ROOT);
     RegAdminCmd("sm_fak", c_DoStuff, ADMFLAG_ROOT);
+    RegAdminCmd("sm_add", c_AddSpawn, ADMFLAG_ROOT);
+    RegAdminCmd("sm_spawns", c_AllSpawn, ADMFLAG_ROOT);
 }
 
 public Action c_StartRetake(int client, int argc) {
@@ -27,19 +29,22 @@ public Action c_EnableEdit(int client, int argc) {
     }
 }
 
+public Action c_AddSpawn(int client, int argc) {
+    Menu menu = GetAddSpawnMenu(A, T);
+    menu.Display(client, MENU_TIME_FOREVER);
+    return Plugin_Handled;
+}
+
+public Action c_AllSpawn(int client, int argc) {
+    Menu menu = GetAllSpawnMenu();
+    menu.Display(client, MENU_TIME_FOREVER);
+    g_Client[client].spawnpoint_tele = true;
+    return Plugin_Handled;
+}
+
+
 public Action c_DoStuff(int client, int argc) {
-    int EntIndex = CreateEntityByName("prop_dynamic"); 
-    SetEntityModel(EntIndex, "models/player/tm_phoenix.mdl");
-    ActivateEntity(EntIndex);
-    DispatchSpawn(EntIndex);
-    float client_origin[3];
-    float client_angles[3];
-    GetClientAbsAngles(client, client_angles);
-    GetClientAbsOrigin(client, client_origin);
-    // SetVariantString("Idle_Shoot_C4");
-    // AcceptEntityInput(EntIndex, "SetAnimation");
-    TeleportEntity(EntIndex, client_origin, client_angles, NULL_VECTOR); 
-    PrintToChatAll("%s %d", RETAKE_PREFIX, EntIndex);
+    GiveClientItemWeaponID(client, C4);
     return Plugin_Handled;
 }
 

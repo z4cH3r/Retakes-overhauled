@@ -6,11 +6,13 @@
 #include "spawn_points.sp"
 
 
-int g_iBomber;
+int g_iBomber = -1;
 int g_iWinStreak = 0;
+int g_iRoundCounter = 0;
 bool g_bIsCTWin = false;
 bool g_bBombWasPlanted = false;
 bool g_bWarmupCountdown = false;
+char g_sCurrentMap[MAX_MAP_SIZE];
 bool g_bFullBuyTriggered = false;
 RoundTypes g_rtRoundState = WARMUP;
 float g_fWarmupTimerEnd;
@@ -35,6 +37,10 @@ int GetRoundCounter() {
     return GetTeamScore(CS_TEAM_T) + GetTeamScore(CS_TEAM_CT) + 1;
 }
 
+int GetInternalRoundCounter() {
+    return g_iRoundCounter;
+}
+
 void SetWasBombPlanted(bool value) {
     g_bBombWasPlanted = value;
 }
@@ -44,7 +50,7 @@ RoundTypes GetRoundState() {
 }
 
 void SetRoundState(RoundTypes state) {
-    PrintToChatAll("%s Round state set to 0x%08x", RETAKE_PREFIX, state);
+    // PrintToChatAll("%s Round state set to 0x%08x", RETAKE_PREFIX, state);
     g_rtRoundState = state;
 }
 
@@ -66,7 +72,6 @@ float GetTimerCountdown() {
 bool TryRetakeStart() {
     int clients_amount = GetClientCount(); // Using GetClientCount without fix for connecting players case
     if ((clients_amount >= MIN_PLAYERS) && (g_rtRoundState & RETAKE_NOT_LIVE)) {
-        InitConvars();
         g_bWarmupCountdown = false;
         g_fWarmupTimerEnd = GetEngineTime() + GetTimerCountdown();
         SetRoundState(TIMER_STARTED);
@@ -125,6 +130,7 @@ void ClearPlayerDamage() {
 
 void SetupWaitingRound() {
     if (GetClientCountFix() < MIN_PLAYERS) {
+        SetInitCvars();        
         PrintToChatAll("%s Waiting for more players (>= %d)", RETAKE_PREFIX, MIN_PLAYERS);	
     }
     else {
@@ -134,7 +140,9 @@ void SetupWaitingRound() {
 
 void SetupRoundEnd() {
     if (!g_bBombWasPlanted && (g_rtRoundState & ~RETAKE_NOT_LIVE)) {
-        PrintToChatAll("%s %N hasn't planted the bomb and will be swapped to CT", RETAKE_PREFIX, g_iBomber);
+        if (-1 != g_iBomber) {
+            PrintToChatAll("%s %N hasn't planted the bomb and will be swapped to CT", RETAKE_PREFIX, g_iBomber);
+        }
     }
 }
 
@@ -144,7 +152,7 @@ Bombsite GetRandomSite() {
 
 void SwapBomber() {
     int client = GetRandomPlayer(GetTeamMatrix(CS_TEAM_CT));
-    if (-1 != client) {
+    if (-1 != client && -1 != g_iBomber) {
         CS_SwitchTeam(client, CS_TEAM_T);
         CS_SwitchTeam(g_iBomber, CS_TEAM_CT);
     }
@@ -159,18 +167,20 @@ void SetupPreRound() {
         SwapBomber();
     }
 
+    VerifyCookies();
     SetupTeams();
     g_bIsCTWin = false;
     ClearPlayerDamage();
     g_bBombWasPlanted = false;
     ResetSpawnUsage();
+    g_iRoundCounter = GetRoundCounter();
 }
 
 // Returns how many players SHOULD be on each team
 int GetTeamBalanceAmount(int team) {
     int ret = 0;
 
-    int clients = GetClientCountFix();
+    int clients = GetClientCountFix(true) + g_ClientQueue.size;
 
     switch (team) {
         case CS_TEAM_T: {
@@ -190,8 +200,7 @@ int GetTeamBalanceAmount(int team) {
 // Checks whether delta of T's and CT's >= 1 towards the CT's
 void VerifyTeamBalance() {
     int client;
-    int counter;
-    while ((CS_TEAM_CT == GetNextTeamBalance()) && (counter++ < MaxClients)) {
+    while (GetPlayerCount(GetTeamMatrix(CS_TEAM_T)) > GetPlayerCount(GetTeamMatrix(CS_TEAM_CT))) {
         client = GetRandomPlayer(GetTeamMatrix(CS_TEAM_T));
         if (-1 != client) {
             CS_SwitchTeam(client, CS_TEAM_CT);
@@ -239,7 +248,7 @@ int SwitchTeams() {
     // bubble sorting the clients via round_damage
     for (int i = 1; i <= GetArraySize(ct_matrix) - 1; i++) {
         for (int j = 0; j <  GetArraySize(ct_matrix) - i; j++) {
-            if (g_Client[GetArrayCell(ct_matrix, j)].round_damage > g_Client[GetArrayCell(ct_matrix, j + 1)].round_damage) {
+            if (g_Client[GetArrayCell(ct_matrix, j)].round_damage < g_Client[GetArrayCell(ct_matrix, j + 1)].round_damage) {
                 SwapArrayItems(ct_matrix, j, j + 1);
             }
         }
@@ -252,6 +261,7 @@ int SwitchTeams() {
 
     for (int i = 0; (i < GetTeamBalanceAmount(CS_TEAM_T)) && (i < GetArraySize(ct_matrix)); i++) {
         CS_SwitchTeam(GetArrayCell(ct_matrix, i), CS_TEAM_T);
+        PrintToChatAll("Transferring %N players to t", GetArrayCell(ct_matrix, i));
     }
 
     delete t_matrix;
@@ -279,7 +289,7 @@ void ScrambleTeams(bool sort_by_frags = true) {
         // Bubble sorting the clients via frags
         for (int i = 1; i <= GetArraySize(players_matrix) - 1; i++) {
             for (int j = 0; j <  GetArraySize(players_matrix) - i; j++) {
-                if (GetClientFrags(GetArrayCell(players_matrix, j)) > GetClientFrags(GetArrayCell(players_matrix, j + 1))) {
+                if (GetClientFrags(GetArrayCell(players_matrix, j)) < GetClientFrags(GetArrayCell(players_matrix, j + 1))) {
                     SwapArrayItems(players_matrix, j, j + 1);
                 }
             }
@@ -296,6 +306,7 @@ void ScrambleTeams(bool sort_by_frags = true) {
     }
 
     for (int i = 0; i < GetArraySize(players_matrix); i++) {
+        PrintToChatAll("%N %d", GetArrayCell(players_matrix, i), i);
         if (i % 2 == 0) {
             CS_SwitchTeam(GetArrayCell(players_matrix, i), CS_TEAM_CT);
         }
@@ -350,9 +361,6 @@ void BeforeSetupRound() {
     }
 
     if (g_rtRoundState == TIMER_STOPPED) {
-        SetRoundState(PISTOL_ROUND);
-        InsertSpectateIntoServer();
-        ServerCommand("mp_restartgame 1");
         return;
     }
 
@@ -377,14 +385,7 @@ void EnableEdit() {
     }
     PrintToChatAll("%s Edit mode enabled", RETAKE_PREFIX);
 
-    SetConVarInt(FindConVar("mp_freezetime"), 0);
-    SetConVarFloat(FindConVar("mp_roundtime"), 60.0);
-    SetConVarFloat(FindConVar("mp_roundtime_defuse"), 60.0);
-    SetConVarFloat(FindConVar("mp_roundtime_hostage"), 60.0);
-
-    if (1 == GameRules_GetProp("m_bWarmupPeriod")) {
-        EnableWarmupCountdown(5);
-    }
+    SetEditCvars();
 
     SetRoundState(EDIT);
     ServerCommand("mp_restartgame 1");
@@ -411,10 +412,19 @@ void SetupSpawns(Bombsite site) {
 
         TeleportClient(GetArrayCell(players_matrix, i), g_Spawns[spawn_index]);
     }
+    
+    delete players_matrix;
+}
+
+Action SwitchToBomb(Handle timer, int client) {
+    FakeClientCommand(client, "use weapon_c4");
+    return Plugin_Stop;
 }
 
 void RetakeLiveRoundSetup() {
     Bombsite cur_site = GetRandomSite();
+    
+    StripAllClientsWeapons(KNIFE_MASK);
 
     SetupSpawns(cur_site);
 
@@ -428,9 +438,8 @@ void RetakeLiveRoundSetup() {
              RETAKE_PREFIX, g_iBomber, GetClientTeam(g_iBomber), cur_site);
         }
         TeleportClient(g_iBomber, g_Spawns[spawn_index]);
-
         GiveClientItemWeaponID(g_iBomber, C4);
-        PrintToChatAll("%s Bomb given to %N", RETAKE_PREFIX, g_iBomber);
+        CreateTimer(0.1, SwitchToBomb, g_iBomber);
     }
 
     switch (cur_site) {
@@ -439,8 +448,6 @@ void RetakeLiveRoundSetup() {
         case B:
             PrintToChatAll("%s Retaking on site B", RETAKE_PREFIX);	
     }
-
-    StripAllClientsWeapons(KNIFE_MASK);
 }
 
 void SetupRound() {
@@ -459,6 +466,12 @@ void SetupRound() {
         case EDIT: {
             SetupEditRound();
         }
+        case TIMER_STOPPED: {
+            SetRoundState(PISTOL_ROUND);
+            SetRetakeLiveCvars();
+            InsertSpectateIntoServer();
+            ServerCommand("mp_restartgame 1");
+        }
         case FULLBUY_ROUND: {
             SetupFullbuyRound();
         }
@@ -472,6 +485,10 @@ void SetupRound() {
 }
 
 void SetupEditRound() {
+    for (int i = 0; i < MaxClients; i++) {
+        g_Client[i].spawnpoint_tele = false;
+        g_Client[i].edit_menu_opened = false;
+    }
     DrawSpawns();
 }
 
@@ -556,12 +573,16 @@ void InitRetake() {
     SetRoundState(WARMUP);
 }
 
-void GetCurrentMapLower() {
+void UpdateCurrentMapLower() {
     GetCurrentMap(g_sCurrentMap, sizeof(g_sCurrentMap));
     int len = strlen(g_sCurrentMap);
     for (int i = 0; i < len ; i++) {
         g_sCurrentMap[i] = CharToLower(g_sCurrentMap[i]);
     }
+}
+
+char[] GetCurrentMapLower() {
+    return g_sCurrentMap;
 }
 
 void PrecacheModels() {
@@ -572,13 +593,13 @@ void PrecacheModels() {
 }
 
 public void OnMapStart() {
+    SetInitCvars();
+
     ConnectToDB();
 
     PrecacheModels();
     
-    GetCurrentMapLower();
-
-    ResetSpawns();
+    UpdateCurrentMapLower();
 
     LoadSpawns();
     

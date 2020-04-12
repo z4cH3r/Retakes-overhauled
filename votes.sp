@@ -98,7 +98,7 @@ Action VoteHandler(int client, RoundTypes type) {
         return Plugin_Handled;
     }
     else { g_Client[client].last_command_time = GetEngineTime(); }
-    if (MIN_PISTOL_ROUNDS >= GetRoundCounter()) { 
+    if (MIN_PISTOL_ROUNDS >= GetInternalRoundCounter()) { // Using internal because you can vote before round ends (round end but state hasn't changed)
         PrintToChat(client, "%s Can vote for %s only after %d rounds", RETAKE_PREFIX, GetVoteType(type), MIN_PISTOL_ROUNDS);
         return Plugin_Handled;
     }

@@ -8,13 +8,13 @@
 #include <sourcemod>
 #include <sdktools>
 #include <cstrike>
+#include <sdkhooks>
 
 #include "types.sp"
 
 /** Cross file globals **/
 Client g_Client[MAXPLAYERS + 1];
 Queue g_ClientQueue;
-char g_sCurrentMap[MAX_MAP_SIZE];
 Spawn g_Spawns[MAX_SPAWN_COUNT];
 SpawnModels g_SpawnModels;
 
@@ -37,21 +37,16 @@ void InitConsoleCMDs() {
     RegConsoleCmd("sm_vd", c_VoteDeagle);
 }
 
-void InitConvars() {
-    SetConVarInt(FindConVar("bot_quota"), 0);
-    SetConVarInt(FindConVar("mp_free_armor"), 0);
-    SetConVarInt(FindConVar("mp_startmoney"), 0);
-    SetConVarInt(FindConVar("mp_teamcashawards"), 0);
-    SetConVarInt(FindConVar("mp_force_pick_time"), 0);
-    SetConVarInt(FindConVar("mp_playercashawards"), 0);
-    SetConVarInt(FindConVar("mp_defuser_allocation"), 2);
-    SetConVarInt(FindConVar("mp_freezetime"), FREEZETIME);
-    SetConVarFloat(FindConVar("mp_roundtime"), 0.15);
-    SetConVarFloat(FindConVar("mp_roundtime_defuse"), 0.15);
-    SetConVarFloat(FindConVar("mp_roundtime_hostage"), 0.15);
-    SetConVarFloat(FindConVar("mp_round_restart_delay"), 2.0);
-    SetConVarString(FindConVar("ammo_grenade_limit_flashbang"), "2");
+void SetRetakeLiveCvars() {
+    ServerCommand("exec retakes_live.cfg");
+}
 
+void SetEditCvars() {
+    ServerCommand("exec retakes_edit.cfg");
+}
+
+void SetInitCvars() {
+    ServerCommand("exec retakes.cfg");
 }
 
 public void OnPluginEnd() {
@@ -115,6 +110,37 @@ void PopulateArrayList(ArrayList ar, any[] list, int size) { // You must check s
     for (int i = 0; i < size; i++) {
         PushArrayCell(ar, list[i]);
     }
+}
+
+char[] GetSiteStringFromBombsite(Bombsite site) {
+    char ret[MAX_INPUT_SIZE] = "NONE";
+    switch (site) {
+        case A: {
+            ret = "A";
+        }
+        case B: {
+            ret = "B";
+        }
+    }
+    
+    return ret;
+}
+
+char[] GetSpawnTypeStringFromSpawnType(SpawnType type) {
+    char ret[MAX_INPUT_SIZE] = "NONE";
+    switch (type) {
+        case CT: {
+            ret = "Counter-Terrorist";
+        }
+        case T: {
+            ret = "Terrorist";
+        }
+        case BOMBER: {
+            ret = "Bomber";
+        }
+    }
+    
+    return ret;
 }
 
 #endif // MAIN_SP

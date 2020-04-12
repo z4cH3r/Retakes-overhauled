@@ -13,10 +13,10 @@ Handle g_hClientPrimaryCT = INVALID_HANDLE;
 
 
 void InitCookies() {
-    g_hClientAwp = RegClientCookie("cAwp31121", "Client awp preference", CookieAccess_Protected);
-    g_hClientAwpSecondary = RegClientCookie("cPistol21113", "Client secondary preference when with awp", CookieAccess_Protected);
-    g_hClientPrimaryT = RegClientCookie("cPrimaryT21113", "Client Primary T weapon preference", CookieAccess_Protected);
-    g_hClientPrimaryCT = RegClientCookie("cPrimaryCT21113", "Client Primary CT preference", CookieAccess_Protected);
+    g_hClientAwp = RegClientCookie("cAwp333", "Client awp preference", CookieAccess_Protected);
+    g_hClientAwpSecondary = RegClientCookie("cPistol333", "Client secondary preference when with awp", CookieAccess_Protected);
+    g_hClientPrimaryT = RegClientCookie("cPrimaryT333", "Client Primary T weapon preference", CookieAccess_Protected);
+    g_hClientPrimaryCT = RegClientCookie("cPrimaryCT333", "Client Primary CT preference", CookieAccess_Protected);
 }
 
 Handle GetCookie(cookies cookie) {
@@ -39,7 +39,6 @@ Handle GetCookie(cookies cookie) {
 
 void SetCookie(int client, cookies cookie, const char[] value) {
     if (!IsClientValid(client)) { return; }
-    PrintToChatAll("Setting cookie %d to %s", cookie, value);
     switch (cookie) {
         case cAwp: {
             SetClientCookie(client, g_hClientAwp, value);
@@ -70,8 +69,14 @@ bool AreCookiesExisting(int client) {
     return true;
 }
 
+void VerifyCookies() {
+    for (int i = 1; i < MaxClients; i++) {
+        OnClientCookiesCached(i);
+    }
+}
+
 void OnClientCookiesCached(int client) {
-    if (IsFakeClient(client) || !IsClientValid(client)) {
+    if (!IsClientValid(client)) {
         return;
     }
 
@@ -93,7 +98,7 @@ void OnClientCookiesCached(int client) {
 
     if (is_new) {
         g_Client[client].pref.StoreClientCookies(client);
-        MenuGunPref(client, 0);
+        PrintToChat(client, "%s Type /guns to set your guns preferences", RETAKE_PREFIX);
     }
 }
 

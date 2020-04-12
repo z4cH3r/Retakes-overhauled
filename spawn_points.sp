@@ -10,6 +10,9 @@ Handle g_hSql = INVALID_HANDLE;
 
 void ResetSpawns() {
     for (int i = 0; i < MAX_SPAWN_COUNT; i++) {
+        if (IsValidEdict(g_Spawns[i].ent_id) && g_Spawns[i].ent_id > 1) {
+            RemoveEdict(g_Spawns[i].ent_id); 
+        }
         g_Spawns[i].Initialize();
     }
 }
@@ -53,41 +56,37 @@ bool ConnectToDB() {
     // Initialize DB if stuff is missing :p
     char driver_type[MAX_INPUT_SIZE];
     SQL_GetDriverIdent(SQL_ReadDriver(g_hSql), driver_type, sizeof(driver_type));
+    Handle hndl;
 
     if (0 == strcmp(driver_type, "mysql", false)) {
-        SQL_Query(g_hSql, "CREATE TABLE IF NOT EXISTS `spawns` (`id` int(11) NOT NULL AUTO_INCREMENT, `type` int(11) NOT NULL, `site` int(11) NOT NULL, `map` varchar(32) NOT NULL, `posx` float NOT NULL, `posy` float NOT NULL, `posz` float NOT NULL, `angx` float NOT NULL, PRIMARY KEY (`id`));");
+        hndl = SQL_Query(g_hSql, "CREATE TABLE IF NOT EXISTS `spawns` (`id` int(11) NOT NULL AUTO_INCREMENT, `type` int(11) NOT NULL, `site` int(11) NOT NULL, `map` varchar(32) NOT NULL, `posx` float NOT NULL, `posy` float NOT NULL, `posz` float NOT NULL, `angx` float NOT NULL, PRIMARY KEY (`id`));");
     }
     else if (0 == strcmp(driver_type, "sqlite", false)) {
-        SQL_Query(g_hSql, "CREATE TABLE IF NOT EXISTS `spawns` (`id` INTEGER PRIMARY KEY, `type` INTEGER NOT NULL, `site` INTEGER NOT NULL, `map` varchar(32) NOT NULL, `posx` float NOT NULL, `posy` float NOT NULL, `posz` float NOT NULL, `angx` float NOT NULL);");
+        hndl = SQL_Query(g_hSql, "CREATE TABLE IF NOT EXISTS `spawns` (`id` INTEGER PRIMARY KEY, `type` INTEGER NOT NULL, `site` INTEGER NOT NULL, `map` varchar(32) NOT NULL, `posx` float NOT NULL, `posy` float NOT NULL, `posz` float NOT NULL, `angx` float NOT NULL);");
     }
+    CloseHandle(hndl);
 
     return true;
 }
 
 void LoadSpawns() {
-    ResetSpawns();
-
     if (INVALID_HANDLE == g_hSql) {
         if (!ConnectToDB()) {
             SetFailState("%s LoadSpawns called with an invalid DB handle", RETAKE_PREFIX);
+            return;
         }
     }
 
+    ResetSpawns();
+
     char query[MAX_SQL_QUERY_SIZE];
-    FormatEx(query, sizeof(query), "SELECT id, type, site, posx, posy, posz, angx FROM spawns WHERE map = '%s'", g_sCurrentMap);
-    SQL_TQuery(g_hSql, LoadSpawnsCallBack, query, _, DBPrio_High);
-}
-
-void LoadSpawnsCallBack(Handle owner, Handle hndl, const char[] error, any data) {
-    if (INVALID_HANDLE == hndl)	{
-        LogError("%s SQL Error on LoadSpawnsCallback, error: %s", RETAKE_PREFIX, error);
-        return;
-    }
-
+    FormatEx(query, sizeof(query), "SELECT id, type, site, posx, posy, posz, angx FROM spawns WHERE map = '%s'", GetCurrentMapLower());
+    Handle hndl = SQL_Query(g_hSql, query);
     int spawn_index = 0;
     while (SQL_FetchRow(hndl) && spawn_index < MAX_SPAWN_COUNT) {
         g_Spawns[spawn_index].is_initialized = true;
-        g_Spawns[spawn_index].id = SQL_FetchInt(hndl, 0);
+        g_Spawns[spawn_index].sql_id = SQL_FetchInt(hndl, 0);
+        g_Spawns[spawn_index].ent_id = -1;
         g_Spawns[spawn_index].spawn_type = view_as<SpawnType>(SQL_FetchInt(hndl, 1));
         g_Spawns[spawn_index].bombsite = view_as<Bombsite>(SQL_FetchInt(hndl, 2));
         g_Spawns[spawn_index].spawn_location.x = SQL_FetchFloat(hndl, 3);
@@ -100,6 +99,7 @@ void LoadSpawnsCallBack(Handle owner, Handle hndl, const char[] error, any data)
         g_Spawns[spawn_index].spawn_angles.ToFormat();
         spawn_index++;
     }
+    CloseHandle(hndl);
 
     if (GetRoundState() & ~RETAKE_NOT_LIVE) {
         if(GetSpawnCount() == 0) {
@@ -140,27 +140,6 @@ void SetModelBombsiteColor(Bombsite site, int[] color) {
     }
 }
 
-void DrawSpawns() {
-    if (GetRoundState() != EDIT) {
-        return;
-    }
-
-    for (int i = 0; i < GetSpawnCount(); i++) {
-        int ent = CreateEntityByName("prop_dynamic"); 
-
-        int target_color[3]; // [r, g, b]
-        SetModelBombsiteColor(g_Spawns[i].bombsite, target_color);
-
-        SetEntityModel(ent, GetModelByType(g_Spawns[i].spawn_type));
-        ActivateEntity(ent);
-        DispatchSpawn(ent);
-        g_Spawns[i].spawn_location.ToFormat();
-        g_Spawns[i].spawn_angles.ToFormat();
-        SetEntityRenderColor(ent, target_color[0], target_color[1], target_color[2]);
-        TeleportEntity(ent, g_Spawns[i].spawn_location.formatted, g_Spawns[i].spawn_angles.formatted, NULL_VECTOR); 
-    }
-}
-
 int GetRandomSpawn(SpawnType type, Bombsite site) {
     int spawns[MAX_SPAWN_COUNT];
     int index = 0;
@@ -189,11 +168,105 @@ void ResetSpawnUsage() {
 
 void TeleportClient(int client, Spawn spawn) {
     if (IsClientInGamePlaying(client) && IsPlayerAlive(client)) {
-        // Verify Axises are up to date
+        // Verify Axes are up to date
         spawn.spawn_location.ToFormat();
         spawn.spawn_angles.ToFormat();
 
         TeleportEntity(client, spawn.spawn_location.formatted, spawn.spawn_angles.formatted, NULL_VECTOR);
+    }
+}
+
+void DrawSpawns() {
+    if (GetRoundState() != EDIT) {
+        return;
+    }
+
+    PrintToChatAll("%s There are %d spawns", RETAKE_PREFIX, GetSpawnCount());
+    for (int i = 0; i < GetSpawnCount(); i++) {
+        int ent = CreateEntityByName("prop_dynamic"); 
+        if (-1 == ent) {
+            SetFailState("%s Could not create entity", RETAKE_PREFIX);
+            return;
+        }
+
+        g_Spawns[i].ent_id = ent;
+        int target_color[3]; // [r, g, b]
+        SetModelBombsiteColor(g_Spawns[i].bombsite, target_color);
+
+        SetEntityModel(ent, GetModelByType(g_Spawns[i].spawn_type));
+        ActivateEntity(ent);
+        DispatchSpawn(ent);
+        g_Spawns[i].spawn_location.ToFormat();
+        g_Spawns[i].spawn_angles.ToFormat();
+        SetEntityRenderColor(ent, target_color[0], target_color[1], target_color[2]);
+        SetEntityTouchFlags(ent, GetTeamMatrix(CS_TEAM_ANY));
+        SDKHook(ent, SDKHook_StartTouch, OnStartTouch);
+        SDKHook(ent, SDKHook_Touch, OnTouch);
+        SDKHook(ent, SDKHook_EndTouch, OnEndTouch);
+        TeleportEntity(ent, g_Spawns[i].spawn_location.formatted, g_Spawns[i].spawn_angles.formatted, NULL_VECTOR); 
+    }
+}
+
+void SetEntityTouchFlags(int entity, int[] players_matrix) {
+    DispatchKeyValue(entity, "TouchType", "4");
+    SetEntProp(entity, Prop_Send, "m_usSolidFlags", 12); //FSOLID_NOT_SOLID|FSOLID_TRIGGER
+    SetEntProp(entity, Prop_Data, "m_nSolidType", 6); // SOLID_VPHYSICS
+    SetEntProp(entity, Prop_Send, "m_CollisionGroup", 1); //COLLISION_GROUP_DEBRIS 
+    SetEntityMoveType(entity, MOVETYPE_NONE);
+    SetEntProp(entity, Prop_Data, "m_MoveCollide", 0);
+    for (int i = 0; i < GetPlayerCount(players_matrix); i++) {
+        SetEntPropEnt(entity, Prop_Send, "m_hOwnerEntity", players_matrix[i]);
+    }
+}
+
+int GetSpawnIndexByEnt(int ent) {
+    for (int i = 0; i < GetSpawnCount(); i++) {
+        if (g_Spawns[i].ent_id == ent) {
+            return i;
+        }
+    }
+    return -1;
+}
+
+Action OnStartTouch(int ent, int client) {
+    int spawn_index = GetSpawnIndexByEnt(ent);
+    if (-1 != spawn_index && !g_Client[client].edit_menu_opened && !g_Client[client].spawnpoint_tele) {
+        g_Client[client].edit_menu_opened = true;
+        Menu menu = GetEditSpawnMenu(spawn_index);
+        menu.Display(client, MENU_TIME_FOREVER);
+    }
+    return Plugin_Continue;
+}
+
+Action OnTouch(int ent, int client) {
+    OnStartTouch(ent, client);
+    return Plugin_Continue;
+}
+
+Action OnEndTouch(int ent, int client) {
+    g_Client[client].edit_menu_opened = false;
+    return Plugin_Continue;
+}
+
+void AddSpawnPoint(Bombsite site, SpawnType type, float[] loc, float[] ang) {
+    char query[MAX_SQL_QUERY_SIZE];
+    FormatEx(query, sizeof(query), "INSERT INTO spawns (map, type, site, posx, posy, posz, angx) VALUES ('%s', '%d', '%d', %f, %f, %f, %f);", GetCurrentMapLower(), type, site, loc[0], loc[1], loc[2], ang[1]);
+    Handle ret = SQL_Query(g_hSql, query);
+    if (INVALID_HANDLE != ret) {
+        CloseHandle(ret);
+        LoadSpawns();
+        DrawSpawns();
+    }
+}
+
+void DeleteSpawnPoint(int sql_id) {
+    char query[MAX_SQL_QUERY_SIZE];
+    FormatEx(query, sizeof(query), "DELETE FROM spawns WHERE id = %d", sql_id);
+    Handle ret = SQL_Query(g_hSql, query);
+    if (INVALID_HANDLE != ret) {
+        CloseHandle(ret);
+        LoadSpawns();
+        DrawSpawns();
     }
 }
 

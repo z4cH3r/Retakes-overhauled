@@ -48,11 +48,11 @@ Action l_JoinTeam(int client, const char[] command, int argc) {
     // Allow only moving to spec from any team
     switch (target_team) {
         case CS_TEAM_T: {
-            PrintToChat(client, "Cannot change team to T");
+            PrintToChat(client, "%s While retake is live cannot change team to T", RETAKE_PREFIX);
             return Plugin_Handled;
         }
         case CS_TEAM_CT: {
-            PrintToChat(client, "Cannot change team to CT");
+            PrintToChat(client, "%s While retake is live cannot change team to CT", RETAKE_PREFIX);
             return Plugin_Handled;
         }
         case CS_TEAM_SPECTATOR: {
@@ -99,7 +99,7 @@ public Action e_OnRoundEnd(Event event, char[] name, bool dontBroadcast) {
         SetTWinStreak(GetTWinStreak() + 1);
         // If over 50% of rounds needed for scramble then print winstreak
         if (GetTWinStreak() > RoundToCeil(GetPercentage(WINSTREAK_MAX, 50))) {
-            PrintToChatAll("Terrors are on %d winstreak!", GetTWinStreak());
+            PrintToChatAll("%s Terrors are on %d winstreak!", RETAKE_PREFIX, GetTWinStreak());
         }
     }
 
@@ -147,8 +147,12 @@ public Action e_OnFullConnect(Event event, char[] name, bool dontBroadcast) {
     g_Client[client].last_command_time = GetEngineTime();
     ResetClientVotes(client);
 
-    if (g_rtRoundState == WAITING) {
+    if (GetRoundState() == WAITING) {
         TryRetakeStart();
+    }
+
+    if (GetRoundState() == EDIT) {
+        DrawSpawns();
     }
 }
 
