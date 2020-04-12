@@ -21,7 +21,7 @@
 
 #define VOTE_PERCENTAGE         (60)
 
-#define WINSTREAK_MAX           (6) // Will scramble when winstreak > 6
+#define WINSTREAK_MAX           (7) // Will scramble when winstreak >= 7
 
 #define RETAKE_PREFIX           ("[Retakes]")
 #define RETAKE_CONFIG           ("retakes")

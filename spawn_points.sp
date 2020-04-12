@@ -64,7 +64,9 @@ bool ConnectToDB() {
     else if (0 == strcmp(driver_type, "sqlite", false)) {
         hndl = SQL_Query(g_hSql, "CREATE TABLE IF NOT EXISTS `spawns` (`id` INTEGER PRIMARY KEY, `type` INTEGER NOT NULL, `site` INTEGER NOT NULL, `map` varchar(32) NOT NULL, `posx` float NOT NULL, `posy` float NOT NULL, `posz` float NOT NULL, `angx` float NOT NULL);");
     }
-    CloseHandle(hndl);
+    if (INVALID_HANDLE != hndl) {
+        CloseHandle(hndl);
+    }
 
     return true;
 }
@@ -99,7 +101,9 @@ void LoadSpawns() {
         g_Spawns[spawn_index].spawn_angles.ToFormat();
         spawn_index++;
     }
-    CloseHandle(hndl);
+    if (INVALID_HANDLE != hndl) {
+        CloseHandle(hndl);
+    }
 
     if (GetRoundState() & ~EDIT) {
         if(GetSpawnCount() == 0) {

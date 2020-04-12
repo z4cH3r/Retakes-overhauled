@@ -334,7 +334,7 @@ void SetupTeams() {
         ScrambleTeams(false);
     }
 
-    if (g_iWinStreak > WINSTREAK_MAX) {
+    if (g_iWinStreak >= WINSTREAK_MAX) {
         PrintToChatAll("%s Terrorist achieved maximum winstreak of %d, scrambling...", RETAKE_PREFIX, WINSTREAK_MAX);
         g_iWinStreak = 0;
         ScrambleTeams();
@@ -367,10 +367,10 @@ void BeforeSetupRound() {
     }
 
     int round_counter = GetRoundCounter();
-
-    if (round_counter <= MIN_PISTOL_ROUNDS) {
+    if (1 == round_counter) { // In case of rr or map switch
+        SetTWinStreak(0);
         g_bFullBuyTriggered = false;
-        SetRoundState(PISTOL_ROUND); // In case of rr or something   
+        SetRoundState(PISTOL_ROUND);
     }
 
     if (round_counter > MIN_PISTOL_ROUNDS && !g_bFullBuyTriggered) {
