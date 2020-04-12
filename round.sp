@@ -197,7 +197,7 @@ int GetTeamBalanceAmount(int team) {
     return ret;
 }
 
-// Checks whether delta of T's and CT's >= 1 towards the CT's
+// Checks whether delta of T's and CT's >= 1 towards the CT's or too many players overall
 void VerifyTeamBalance() {
     int client;
     while (GetPlayerCount(GetTeamMatrix(CS_TEAM_T)) > GetPlayerCount(GetTeamMatrix(CS_TEAM_CT))) {
@@ -205,6 +205,17 @@ void VerifyTeamBalance() {
         if (-1 != client) {
             CS_SwitchTeam(client, CS_TEAM_CT);
             PrintToChatAll("%s Moved %N to CT due to autoteambalance", RETAKE_PREFIX, client);
+        }
+    }
+
+    while (GetClientCountFix(true) > MAX_INGAME_PLAYERS) {
+        client = GetRandomPlayer(GetTeamMatrix(CS_TEAM_T));
+        if (-1 != client) {
+            CS_SwitchTeam(client, CS_TEAM_SPECTATOR);
+            PrintToChatAll("%s Moved %N to spectate due to too many players", RETAKE_PREFIX, client);
+        }
+        else {
+            break;
         }
     }
 }
@@ -239,7 +250,7 @@ int SwitchTeams() {
     PopulateArrayList(t_matrix, GetTeamMatrix(CS_TEAM_T), GetPlayerCount(GetTeamMatrix(CS_TEAM_T)));
     PopulateArrayList(ct_matrix, GetTeamMatrix(CS_TEAM_CT), GetPlayerCount(GetTeamMatrix(CS_TEAM_CT)));
 
-    PrintToChatAll("Transferring %d players to ct", GetArraySize(t_matrix));
+    // PrintToChatAll("Transferring %d players to ct", GetArraySize(t_matrix));
 
     for (int i = 0; i < GetArraySize(t_matrix); i++) {
         CS_SwitchTeam(GetArrayCell(t_matrix, i), CS_TEAM_CT);
@@ -261,7 +272,7 @@ int SwitchTeams() {
 
     for (int i = 0; (i < GetTeamBalanceAmount(CS_TEAM_T)) && (i < GetArraySize(ct_matrix)); i++) {
         CS_SwitchTeam(GetArrayCell(ct_matrix, i), CS_TEAM_T);
-        PrintToChatAll("Transferring %N players to t", GetArrayCell(ct_matrix, i));
+        // PrintToChatAll("Transferring %N players to t", GetArrayCell(ct_matrix, i));
     }
 
     delete t_matrix;
@@ -272,14 +283,6 @@ void ScrambleTeams(bool sort_by_frags = true) {
     ArrayList players_matrix = new ArrayList();
     if (INVALID_HANDLE == players_matrix) { 
         SetFailState("%s Could not allocate memory for players_matrix @ ScrambleTeams", RETAKE_PREFIX);
-    }
-
-    // In case we scramble teams and we have 10 players, move 1 to spec --> 4v5
-    if (GetPlayerCount(GetTeamMatrix(CS_TEAM_ANY)) > MAX_INGAME_PLAYERS) {
-        int client = GetRandomPlayer(GetTeamMatrix(CS_TEAM_ANY));
-        if (-1 != client) {
-            InsertClientIntoQueue(client);
-        }
     }
 
     PopulateArrayList(players_matrix, GetTeamMatrix(CS_TEAM_T), GetPlayerCount(GetTeamMatrix(CS_TEAM_T)));
@@ -306,7 +309,6 @@ void ScrambleTeams(bool sort_by_frags = true) {
     }
 
     for (int i = 0; i < GetArraySize(players_matrix); i++) {
-        PrintToChatAll("%N %d", GetArrayCell(players_matrix, i), i);
         if (i % 2 == 0) {
             CS_SwitchTeam(GetArrayCell(players_matrix, i), CS_TEAM_CT);
         }
@@ -319,18 +321,18 @@ void ScrambleTeams(bool sort_by_frags = true) {
 }
 
 void SetupTeams() {
-    InsertQueuedPlayers();  // here
+    InsertQueuedPlayers();
 
     if (g_bIsCTWin && g_bBombWasPlanted) {
         SwitchTeams();
     }
 
+    VerifyTeamBalance(); // Might be bug cause I'm stupid
+
     if (g_rtRoundState == TIMER_STOPPED)
     {
         ScrambleTeams(false);
     }
-
-    VerifyTeamBalance();
 
     if (g_iWinStreak > WINSTREAK_MAX) {
         PrintToChatAll("%s Terrorist achieved maximum winstreak of %d, scrambling...", RETAKE_PREFIX, WINSTREAK_MAX);
@@ -394,7 +396,7 @@ void EnableEdit() {
 void SetupSpawns(Bombsite site) {
     ArrayList players_matrix = new ArrayList();
     if (INVALID_HANDLE == players_matrix) { 
-        SetFailState("%s Could not allocate memory for players_matrix @ ScrambleTeams", RETAKE_PREFIX);
+        SetFailState("%s Could not allocate memory for players_matrix @ SetupSpawns", RETAKE_PREFIX);
     }
     
     PopulateArrayList(players_matrix, GetTeamMatrix(CS_TEAM_T), GetPlayerCount(GetTeamMatrix(CS_TEAM_T)));
@@ -444,9 +446,11 @@ void RetakeLiveRoundSetup() {
 
     switch (cur_site) {
         case A:
-            PrintToChatAll("%s Retaking on site A", RETAKE_PREFIX);	
+            PrintToChatAll("%s Retaking on site A (%d CT vs %d T)", RETAKE_PREFIX, \
+             GetPlayerCount(GetTeamMatrix(CS_TEAM_CT)), GetPlayerCount(GetTeamMatrix(CS_TEAM_T)));	
         case B:
-            PrintToChatAll("%s Retaking on site B", RETAKE_PREFIX);	
+            PrintToChatAll("%s Retaking on site B (%d CT vs %d T)", RETAKE_PREFIX, \
+             GetPlayerCount(GetTeamMatrix(CS_TEAM_CT)), GetPlayerCount(GetTeamMatrix(CS_TEAM_T)));	
     }
 }
 

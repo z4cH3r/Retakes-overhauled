@@ -238,7 +238,7 @@ void InsertSpectateIntoServer() {
     for (int i = 0; i < GetArraySize(spec_matrix); i++) {
         if (GetClientCountFix(true) < MAX_INGAME_PLAYERS) {
             // Remove client from queue if existing
-            g_ClientQueue.pop(g_ClientQueue.get_index(i));
+            g_ClientQueue.pop(g_ClientQueue.get_index(GetArrayCell(spec_matrix, i)));
             ChangeClientTeam(GetArrayCell(spec_matrix, i), GetNextTeamBalance());
         }
     }

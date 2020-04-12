@@ -255,7 +255,7 @@ enum struct Queue {
         return value;
     }
 
-    void print_queue() { // TODO: CHECK THIS
+    void print_queue() {
         for (int i = 0; i < this.size; i++) {
             PrintToChatAll("data[%d] = %d", i, this.data[i]);
         }

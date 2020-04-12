@@ -84,8 +84,10 @@ public int AddSpawnHandler(Menu menu, MenuAction action, int client, int param2)
 
 Menu GetEditSpawnMenu(int spawn_index) {
     char itoa[MAX_INPUT_SIZE];
+    char title[MAX_INPUT_SIZE];
+    Format(title, sizeof(title), "Edit spawn %d:", g_Spawns[spawn_index].sql_id);
     Menu edit_spawn_menu = CreateMenu(EditSpawnHandler, MENU_ACTIONS_ALL);
-    SetMenuTitle(edit_spawn_menu, "Edit spawn:");
+    SetMenuTitle(edit_spawn_menu, title);
 
     IntToString(view_as<int>(spawn_index), itoa, sizeof(itoa));
     edit_spawn_menu.AddItem(itoa, "Teleport to spawn point");
