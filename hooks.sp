@@ -33,8 +33,8 @@ Action l_JoinTeam(int client, const char[] command, int argc) {
     int source_team = GetClientTeam(client);
 
     // If retake isn't live, allow team transfers
-    if (GetRoundState() & (RETAKE_NOT_LIVE | TIMER_STARTED)) {
-        if (GetRoundState() != TIMER_STARTED) {
+    if (GetRoundState() & ((RETAKE_NOT_LIVE) | TIMER_STARTED)) {
+        if (GetRoundState() & (~EDIT & RETAKE_NOT_LIVE)) {
             TryRetakeStart();
         }
         return Plugin_Continue;
@@ -136,7 +136,7 @@ public Action e_OnBombDefused(Event event, char[] name, bool dontBroadcast)
 public Action e_OnFullConnect(Event event, char[] name, bool dontBroadcast) {
     int client = GetClientOfUserId(GetEventInt(event, "userid"));
     if (!IsClientValid(client)) { return; }
-    if (GetRoundState() & ~RETAKE_NOT_LIVE) { 
+    if (GetRoundState() & ~((RETAKE_NOT_LIVE & ~EDIT) | TIMER_STARTED)) { 
         InsertClientIntoQueue(client);
     }
 

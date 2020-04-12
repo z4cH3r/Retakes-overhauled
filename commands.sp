@@ -30,15 +30,25 @@ public Action c_EnableEdit(int client, int argc) {
 }
 
 public Action c_AddSpawn(int client, int argc) {
-    Menu menu = GetAddSpawnMenu(A, T);
-    menu.Display(client, MENU_TIME_FOREVER);
+    if (GetRoundState() == EDIT) {
+        Menu menu = GetAddSpawnMenu(A, T);
+        menu.Display(client, MENU_TIME_FOREVER);
+    }
+    else {
+        PrintToChat(client, "%s Not in edit mode, aborting commands", RETAKE_PREFIX);
+    }
     return Plugin_Handled;
 }
 
 public Action c_AllSpawn(int client, int argc) {
-    Menu menu = GetAllSpawnMenu();
-    menu.Display(client, MENU_TIME_FOREVER);
-    g_Client[client].spawnpoint_tele = true;
+    if (GetRoundState() == EDIT) {
+        Menu menu = GetAllSpawnMenu();
+        menu.Display(client, MENU_TIME_FOREVER);
+        g_Client[client].spawnpoint_tele = true;
+    }
+    else {
+        PrintToChat(client, "%s Not in edit mode, aborting commands", RETAKE_PREFIX);
+    }
     return Plugin_Handled;
 }
 
