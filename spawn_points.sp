@@ -231,9 +231,11 @@ int GetSpawnIndexByEnt(int ent) {
 Action OnStartTouch(int ent, int client) {
     int spawn_index = GetSpawnIndexByEnt(ent);
     if (-1 != spawn_index && !g_Client[client].edit_menu_opened && !g_Client[client].spawnpoint_tele) {
-        g_Client[client].edit_menu_opened = true;
-        Menu menu = GetEditSpawnMenu(spawn_index);
-        menu.Display(client, MENU_TIME_FOREVER);
+        if (IsClientValid(client) && GetUserAdmin(client) != INVALID_ADMIN_ID) {
+            g_Client[client].edit_menu_opened = true;
+            Menu menu = GetEditSpawnMenu(spawn_index);
+            menu.Display(client, MENU_TIME_FOREVER);
+        }
     }
     return Plugin_Continue;
 }
