@@ -1,7 +1,7 @@
 #if !defined CLIENT_SP
 #define CLIENT_SP
 
-#include "main.sp"
+#include "retake.sp"
 
 void StripClientWeapons(int client, WeaponTypes exclude_slots) {
     if (!IsClientValid(client)) { return; }

@@ -1,7 +1,7 @@
 #if !defined HOOKS_SP
 #define HOOKS_SP
 
-#include "main.sp"
+#include "retake.sp"
 #include "round.sp"
 #include "types.sp"
 

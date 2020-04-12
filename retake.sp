@@ -1,5 +1,5 @@
-#if !defined MAIN_SP
-#define MAIN_SP
+#if !defined RETAKE_SP
+#define RETAKE_SP
 
 #pragma semicolon 1
 #pragma newdecls required
@@ -143,4 +143,4 @@ char[] GetSpawnTypeStringFromSpawnType(SpawnType type) {
     return ret;
 }
 
-#endif // MAIN_SP
+#endif // RETAKE_SP
