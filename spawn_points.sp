@@ -101,7 +101,7 @@ void LoadSpawns() {
     }
     CloseHandle(hndl);
 
-    if (GetRoundState() & ~RETAKE_NOT_LIVE) {
+    if (GetRoundState() & ~EDIT) {
         if(GetSpawnCount() == 0) {
             PrintToChatAll("%s Edit mode is enabled becuase there are no spawns", RETAKE_PREFIX);
             EnableEdit();

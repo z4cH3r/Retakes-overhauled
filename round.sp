@@ -566,13 +566,6 @@ void SetupFullbuyRound() {
     }
 }
 
-void InitRetake() {
-    ServerCommand("mp_warmuptime 120");
-    ServerCommand("mp_autoteambalance 1");
-    ServerCommand("mp_warmup_start");
-    SetRoundState(WARMUP);
-}
-
 void UpdateCurrentMapLower() {
     GetCurrentMap(g_sCurrentMap, sizeof(g_sCurrentMap));
     int len = strlen(g_sCurrentMap);
@@ -593,6 +586,8 @@ void PrecacheModels() {
 }
 
 public void OnMapStart() {
+    SetRoundState(WARMUP);
+
     SetInitCvars();
 
     ConnectToDB();
@@ -602,8 +597,6 @@ public void OnMapStart() {
     UpdateCurrentMapLower();
 
     LoadSpawns();
-    
-    InitRetake();
 }
 
 #endif // ROUND_SP
