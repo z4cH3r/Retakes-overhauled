@@ -277,4 +277,12 @@ int GetClientsAmountPercentage(int percentage) {
     return RoundToCeil(GetPercentage(client_count, percentage));
 }
 
+void SwitchClientTeam(int client, int team) {
+    if (!IsClientValid(client)) { return; }
+    CS_SwitchTeam(client, team);
+    if (CS_TEAM_SPECTATOR != team && CS_TEAM_NONE != team) {
+        CS_UpdateClientModel(client);
+    }
+}
+
 #endif // CLIENT_SP

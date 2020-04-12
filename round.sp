@@ -153,8 +153,8 @@ Bombsite GetRandomSite() {
 void SwapBomber() {
     int client = GetRandomPlayer(GetTeamMatrix(CS_TEAM_CT));
     if (-1 != client && -1 != g_iBomber) {
-        CS_SwitchTeam(client, CS_TEAM_T);
-        CS_SwitchTeam(g_iBomber, CS_TEAM_CT);
+        SwitchClientTeam(client, CS_TEAM_T);
+        SwitchClientTeam(g_iBomber, CS_TEAM_CT);
     }
 }
 
@@ -203,7 +203,7 @@ void VerifyTeamBalance() {
     while (GetPlayerCount(GetTeamMatrix(CS_TEAM_T)) > GetPlayerCount(GetTeamMatrix(CS_TEAM_CT))) {
         client = GetRandomPlayer(GetTeamMatrix(CS_TEAM_T));
         if (-1 != client) {
-            CS_SwitchTeam(client, CS_TEAM_CT);
+            SwitchClientTeam(client, CS_TEAM_CT);
             PrintToChatAll("%s Moved %N to CT due to autoteambalance", RETAKE_PREFIX, client);
         }
     }
@@ -211,7 +211,7 @@ void VerifyTeamBalance() {
     while (GetClientCountFix(true) > MAX_INGAME_PLAYERS) {
         client = GetRandomPlayer(GetTeamMatrix(CS_TEAM_T));
         if (-1 != client) {
-            CS_SwitchTeam(client, CS_TEAM_SPECTATOR);
+            SwitchClientTeam(client, CS_TEAM_SPECTATOR);
             PrintToChatAll("%s Moved %N to spectate due to too many players", RETAKE_PREFIX, client);
         }
         else {
@@ -253,7 +253,7 @@ int SwitchTeams() {
     // PrintToChatAll("Transferring %d players to ct", GetArraySize(t_matrix));
 
     for (int i = 0; i < GetArraySize(t_matrix); i++) {
-        CS_SwitchTeam(GetArrayCell(t_matrix, i), CS_TEAM_CT);
+        SwitchClientTeam(GetArrayCell(t_matrix, i), CS_TEAM_CT);
     }
 
     // bubble sorting the clients via round_damage
@@ -271,7 +271,7 @@ int SwitchTeams() {
     }
 
     for (int i = 0; (i < GetTeamBalanceAmount(CS_TEAM_T)) && (i < GetArraySize(ct_matrix)); i++) {
-        CS_SwitchTeam(GetArrayCell(ct_matrix, i), CS_TEAM_T);
+        SwitchClientTeam(GetArrayCell(ct_matrix, i), CS_TEAM_T);
         // PrintToChatAll("Transferring %N players to t", GetArrayCell(ct_matrix, i));
     }
 
@@ -310,10 +310,10 @@ void ScrambleTeams(bool sort_by_frags = true) {
 
     for (int i = 0; i < GetArraySize(players_matrix); i++) {
         if (i % 2 == 0) {
-            CS_SwitchTeam(GetArrayCell(players_matrix, i), CS_TEAM_CT);
+            SwitchClientTeam(GetArrayCell(players_matrix, i), CS_TEAM_CT);
         }
         else {
-            CS_SwitchTeam(GetArrayCell(players_matrix, i), CS_TEAM_T);
+            SwitchClientTeam(GetArrayCell(players_matrix, i), CS_TEAM_T);
         }
     }
 
@@ -346,7 +346,7 @@ void InsertQueuedPlayers() {
     int ingame_players = GetClientCountFix(true);
 
     while (g_ClientQueue.size > 0 && ingame_players < MAX_INGAME_PLAYERS) {
-        CS_SwitchTeam(g_ClientQueue.pop(), GetNextTeamBalance());
+        SwitchClientTeam(g_ClientQueue.pop(), GetNextTeamBalance());
         ingame_players = GetClientCountFix(true);
     }
 }
