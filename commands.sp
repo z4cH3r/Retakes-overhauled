@@ -6,7 +6,6 @@
 void InitAdminCMDs() {
     RegAdminCmd("sm_edit", c_EnableEdit, ADMFLAG_ROOT);
     RegAdminCmd("sm_start", c_StartRetake, ADMFLAG_ROOT);
-    RegAdminCmd("sm_fak", c_DoStuff, ADMFLAG_ROOT);
     RegAdminCmd("sm_add", c_AddSpawn, ADMFLAG_ROOT);
     RegAdminCmd("sm_spawns", c_AllSpawn, ADMFLAG_ROOT);
 }
@@ -39,12 +38,6 @@ public Action c_AllSpawn(int client, int argc) {
     Menu menu = GetAllSpawnMenu();
     menu.Display(client, MENU_TIME_FOREVER);
     g_Client[client].spawnpoint_tele = true;
-    return Plugin_Handled;
-}
-
-
-public Action c_DoStuff(int client, int argc) {
-    GiveClientItemWeaponID(client, C4);
     return Plugin_Handled;
 }
 

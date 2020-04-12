@@ -13,10 +13,10 @@ Handle g_hClientPrimaryCT = INVALID_HANDLE;
 
 
 void InitCookies() {
-    g_hClientAwp = RegClientCookie("cAwp333", "Client awp preference", CookieAccess_Protected);
-    g_hClientAwpSecondary = RegClientCookie("cPistol333", "Client secondary preference when with awp", CookieAccess_Protected);
-    g_hClientPrimaryT = RegClientCookie("cPrimaryT333", "Client Primary T weapon preference", CookieAccess_Protected);
-    g_hClientPrimaryCT = RegClientCookie("cPrimaryCT333", "Client Primary CT preference", CookieAccess_Protected);
+    g_hClientAwp = RegClientCookie("cAwp", "Client awp preference", CookieAccess_Protected);
+    g_hClientAwpSecondary = RegClientCookie("cPistol", "Client secondary preference when with awp", CookieAccess_Protected);
+    g_hClientPrimaryT = RegClientCookie("cPrimaryT", "Client Primary T weapon preference", CookieAccess_Protected);
+    g_hClientPrimaryCT = RegClientCookie("cPrimaryCT", "Client Primary CT preference", CookieAccess_Protected);
 }
 
 Handle GetCookie(cookies cookie) {
