@@ -8,11 +8,11 @@
 #define MAX_CONVAR_SIZE         (256)
 #define MAX_SQL_QUERY_SIZE      (512)
 #define MAX_SPAWN_COUNT         (64)
-#define MAX_MAP_SIZE            (32)
+#define MAX_MAP_STRING_SIZE     (32)
 #define MAX_INGAME_PLAYERS      (9)
 #define MAX_DB_RETRIES          (20)
 #define MIN_PLAYERS             (2)
-#define MIN_PISTOL_ROUNDS       (2)
+#define MIN_PISTOL_ROUNDS       (5)
 
 #define WARMUP_TIME             (5)
 #define EDIT_TIME               (5)
@@ -20,9 +20,8 @@
 #define VOTE_COOLDOWN_TIME      (3)
 
 #define VOTE_PERCENTAGE         (60)
-#define KIT_SPREAD_PERCENTAGE   (70) // 1 == random, 2 == everyone
 
-#define WINSTREAK_MAX           (6)
+#define WINSTREAK_MAX           (6) // Will scramble when winstreak > 6
 
 #define RETAKE_PREFIX           ("[Retakes]")
 #define RETAKE_CONFIG           ("retakes")

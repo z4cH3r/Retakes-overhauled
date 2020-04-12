@@ -12,7 +12,7 @@ int g_iRoundCounter = 0;
 bool g_bIsCTWin = false;
 bool g_bBombWasPlanted = false;
 bool g_bWarmupCountdown = false;
-char g_sCurrentMap[MAX_MAP_SIZE];
+char g_sCurrentMap[MAX_MAP_STRING_SIZE];
 bool g_bFullBuyTriggered = false;
 RoundTypes g_rtRoundState = WARMUP;
 float g_fWarmupTimerEnd;

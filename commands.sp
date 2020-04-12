@@ -15,6 +15,7 @@ public Action c_StartRetake(int client, int argc) {
         PrintToChatAll("%s Not enough players, cannot start", RETAKE_PREFIX);
     }
     else {
+        ServerCommand("mp_restartgame 1");
         TryRetakeStart();
     }
 }

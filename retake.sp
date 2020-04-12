@@ -54,6 +54,8 @@ public void OnPluginEnd() {
 }
 
 public void OnPluginStart() { 
+    PrintToChatAll("%s Plugin reloaded", RETAKE_PREFIX);
+
     InitHooks();
 
     InitCookies();
