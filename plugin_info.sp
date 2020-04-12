@@ -8,7 +8,7 @@ public Plugin myinfo =
 	author = "ae",
 	description = "Retake server for csgo",
 	version = PLUGIN_VERSION,
-	url = "https://github.com/"
+	url = "https://github.com/gunerel/Retakes-overhauled"
 };
 
 #endif // PLUGIN_INFO_SP
