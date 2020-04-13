@@ -102,7 +102,7 @@ void ResetClientVotes(int client, bool trigger) {
 
 void TriggerAllVoteTypes() {
     for (int i = 0; i < MAX_VOTE_TYPES; i++) {
-        TriggerVote(view_as<RoundTypes>(CalcPowOfTwo(i)));
+        TriggerVote(view_as<RoundTypes>(1 << i));
     }
 }
 
