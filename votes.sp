@@ -34,10 +34,10 @@ char[] GetVoteType(RoundTypes type) {
 
     switch (type) {
         case PISTOL_ROUND: {
-            msg = "pistols";
+            msg = "pistols only";
         }
         case DEAGLE_ROUND: {
-            msg = "deagles";
+            msg = "deagles only";
         }
     }
 
@@ -101,26 +101,38 @@ void ResetClientVotes(int client, bool trigger) {
 }
 
 void TriggerAllVoteTypes() {
+    bool activated = false;
     for (int i = 0; i < MAX_VOTE_TYPES; i++) {
-        TriggerVote(view_as<RoundTypes>(1 << i));
+        if (activated) { // If already activated a round type, reset others that SHOULD be activated.
+            if (GetVotesAmount(view_as<RoundTypes>(1 << i)) >= GetVotesAmountNeeded()) {
+                ResetAllClientsVote(view_as<RoundTypes>(1 << i)); // Just reset without triggering
+            }
+            continue;
+        }
+        if (TriggerVote(view_as<RoundTypes>(1 << i))) { // First round type found that should be activated, activate.
+            activated = true;
+        }
     }
 }
 
-void TriggerVote(RoundTypes type) {
+bool TriggerVote(RoundTypes type) {
     int votes_amount = GetVotesAmount(type);
     
     if (votes_amount >= GetVotesAmountNeeded()) {
+        ResetAllClientsVote(GetRoundState()); // Reset current votes to disable / enable
         if (IsVoteEnabled(type)) {
-            PrintToChatAll("%s %s only disabled", RETAKE_PREFIX, GetVoteType(type));
+            PrintToChatAll("%s %s disabled", RETAKE_PREFIX, GetVoteType(type));
             SetRoundState(FULLBUY_ROUND);
         }
         else {
-            PrintToChatAll("%s %s only enabled", RETAKE_PREFIX, GetVoteType(type));
+            PrintToChatAll("%s %s enabled", RETAKE_PREFIX, GetVoteType(type));
             SetRoundState(type);
         }
         
-        ResetAllClientsVote(type);
+        ResetAllClientsVote(type); // Reset voted type aswell
+        return true;
     }
+    return false;
 }
 
 Action VoteHandler(int client, RoundTypes type) {
@@ -135,7 +147,7 @@ Action VoteHandler(int client, RoundTypes type) {
     }
     else { g_Client[client].last_command_time = GetEngineTime(); }
     if (MIN_PISTOL_ROUNDS >= GetInternalRoundCounter()) { // Using internal because you can vote before round ends (round end but state hasn't changed)
-        PrintToChat(client, "%s Can vote for %s only after %d rounds", RETAKE_PREFIX, GetVoteType(type), MIN_PISTOL_ROUNDS);
+        PrintToChat(client, "%s Can vote for %s after %d rounds", RETAKE_PREFIX, GetVoteType(type), MIN_PISTOL_ROUNDS);
         return Plugin_Handled;
     }
 
@@ -143,7 +155,7 @@ Action VoteHandler(int client, RoundTypes type) {
     int votes_amount = GetVotesAmount(type);
     int votes_needed = GetVotesAmountNeeded();
 
-    PrintToChatAll("%s %N %s %s only (%d of %d required)", RETAKE_PREFIX, client, GetVotePrefix(client, type), GetVoteType(type), votes_amount, votes_needed);
+    PrintToChatAll("%s %N %s %s (%d of %d required)", RETAKE_PREFIX, client, GetVotePrefix(client, type), GetVoteType(type), votes_amount, votes_needed);
 
     TriggerVote(type);
 

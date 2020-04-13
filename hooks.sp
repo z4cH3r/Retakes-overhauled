@@ -157,7 +157,6 @@ public Action e_OnFullConnect(Event event, char[] name, bool dontBroadcast) {
 }
 
 public void OnClientDisconnect_Post(int client) {
-    if (!IsClientValid(client)) { return; }
     if ((GetClientCountFix() < MIN_PLAYERS) && (~RETAKE_NOT_LIVE & g_rtRoundState)) {
         RetakeStop();
     }
