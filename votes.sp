@@ -91,7 +91,7 @@ void ResetAllClientsAllVotes() {
 }
 
 void ResetClientVotes(int client, bool trigger) {
-    for (int i = 1; i < MAX_VOTE_TYPES; i++) {
+    for (int i = 0; i < MAX_VOTE_TYPES; i++) {
         g_Client[client].votes[i] = false;
     }
 
@@ -126,6 +126,9 @@ void TriggerVote(RoundTypes type) {
 Action VoteHandler(int client, RoundTypes type) {
     if (CONSOLE_CLIENT == client) { return Plugin_Handled; }
     if (!IsClientInGamePlaying(client)) { return Plugin_Handled; }
+    if (GetRoundState() & (RETAKE_NOT_LIVE | TIMER_STARTED)) {
+        PrintToChat(client, "%s You can vote only after retake has started..", RETAKE_PREFIX);
+    }
     if (!CanVote(client)) {
         PrintToChat(client, "%s You can vote only every %d seconds", RETAKE_PREFIX, VOTE_COOLDOWN_TIME);
         return Plugin_Handled;
