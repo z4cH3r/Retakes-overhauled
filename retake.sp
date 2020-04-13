@@ -104,6 +104,15 @@ int GetPowOfTwo(int num) {
     return counter;
 }
 
+int CalcPowOfTwo(int pow) {
+    int num = 1;
+    while (pow-- > 0) {
+        num *= 2;
+    }
+
+    return num;
+}
+
 float GetPercentage(int value, int percentage) {
     return float(value) * (float(percentage) / 100.0);
 }

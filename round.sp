@@ -592,6 +592,8 @@ void PrecacheModels() {
 public void OnMapStart() {
     SetRoundState(WARMUP);
 
+    ResetAllClientsAllVotes();
+
     SetInitCvars();
 
     ConnectToDB();

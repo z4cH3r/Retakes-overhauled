@@ -84,9 +84,42 @@ void ResetAllClientsVote(RoundTypes type) {
     }
 }
 
-void ResetClientVotes(int client) {
+void ResetAllClientsAllVotes() {
+    for (int i = 1; i < MaxClients; i++) {
+        ResetClientVotes(i, false);
+    }
+}
+
+void ResetClientVotes(int client, bool trigger) {
     for (int i = 1; i < MAX_VOTE_TYPES; i++) {
         g_Client[client].votes[i] = false;
+    }
+
+    if (trigger) {
+        TriggerAllVoteTypes();
+    }
+}
+
+void TriggerAllVoteTypes() {
+    for (int i = 0; i < MAX_VOTE_TYPES; i++) {
+        TriggerVote(view_as<RoundTypes>(CalcPowOfTwo(i)));
+    }
+}
+
+void TriggerVote(RoundTypes type) {
+    int votes_amount = GetVotesAmount(type);
+    
+    if (votes_amount >= GetVotesAmountNeeded()) {
+        if (IsVoteEnabled(type)) {
+            PrintToChatAll("%s %s only disabled", RETAKE_PREFIX, GetVoteType(type));
+            SetRoundState(FULLBUY_ROUND);
+        }
+        else {
+            PrintToChatAll("%s %s only enabled", RETAKE_PREFIX, GetVoteType(type));
+            SetRoundState(type);
+        }
+        
+        ResetAllClientsVote(type);
     }
 }
 
@@ -109,19 +142,7 @@ Action VoteHandler(int client, RoundTypes type) {
 
     PrintToChatAll("%s %N %s %s only (%d of %d required)", RETAKE_PREFIX, client, GetVotePrefix(client, type), GetVoteType(type), votes_amount, votes_needed);
 
-    if (votes_amount >= GetVotesAmountNeeded()) {
-        if (IsVoteEnabled(type)) {
-            PrintToChatAll("%s %s only disabled", RETAKE_PREFIX, GetVoteType(type));
-            SetRoundState(FULLBUY_ROUND);
-        }
-        else {
-            PrintToChatAll("%s %s only enabled", RETAKE_PREFIX, GetVoteType(type));
-            SetRoundState(type);
-        }
-        
-        ResetAllClientsVote(type);
-        return Plugin_Handled;
-    }
+    TriggerVote(type);
 
     return Plugin_Handled;
 }

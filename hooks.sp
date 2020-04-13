@@ -145,7 +145,7 @@ public Action e_OnFullConnect(Event event, char[] name, bool dontBroadcast) {
     }
 
     g_Client[client].last_command_time = GetEngineTime();
-    ResetClientVotes(client);
+    ResetClientVotes(client, false);
 
     if (GetRoundState() == WAITING) {
         TryRetakeStart();
@@ -161,6 +161,8 @@ public void OnClientDisconnect_Post(int client) {
     if ((GetClientCountFix() < MIN_PLAYERS) && (~RETAKE_NOT_LIVE & g_rtRoundState)) {
         RetakeStop();
     }
+
+    ResetClientVotes(client, true);
     
     // Remove client from queue if existing
     g_ClientQueue.pop(g_ClientQueue.get_index(client));
