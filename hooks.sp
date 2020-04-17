@@ -46,13 +46,15 @@ Action l_JoinTeam(int client, const char[] command, int argc) {
     }
 
     // Allow only moving to spec from any team
+    if (CS_TEAM_SPECTATOR != target_team) {
+        PrintToChat(client, "%s Teams cannot be changed while retake is live ", RETAKE_PREFIX);
+    }
+
     switch (target_team) {
         case CS_TEAM_T: {
-            PrintToChat(client, "%s While retake is live cannot change team to T", RETAKE_PREFIX);
             return Plugin_Handled;
         }
         case CS_TEAM_CT: {
-            PrintToChat(client, "%s While retake is live cannot change team to CT", RETAKE_PREFIX);
             return Plugin_Handled;
         }
         case CS_TEAM_SPECTATOR: {

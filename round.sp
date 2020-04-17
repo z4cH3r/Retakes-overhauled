@@ -50,7 +50,6 @@ RoundTypes GetRoundState() {
 }
 
 void SetRoundState(RoundTypes state) {
-    // PrintToChatAll("%s Round state set to 0x%08x", RETAKE_PREFIX, state);
     g_rtRoundState = state;
 }
 
@@ -250,8 +249,6 @@ int SwitchTeams() {
     PopulateArrayList(t_matrix, GetTeamMatrix(CS_TEAM_T), GetPlayerCount(GetTeamMatrix(CS_TEAM_T)));
     PopulateArrayList(ct_matrix, GetTeamMatrix(CS_TEAM_CT), GetPlayerCount(GetTeamMatrix(CS_TEAM_CT)));
 
-    // PrintToChatAll("Transferring %d players to ct", GetArraySize(t_matrix));
-
     for (int i = 0; i < GetArraySize(t_matrix); i++) {
         SwitchClientTeam(GetArrayCell(t_matrix, i), CS_TEAM_CT);
     }
@@ -265,14 +262,8 @@ int SwitchTeams() {
         }
     }
 
-    PrintToChatAll("%s Last round damage:", RETAKE_PREFIX);
-    for (int i = 0; i < GetArraySize(ct_matrix); i++) {
-        PrintToChatAll("%s %N with %d damage", RETAKE_PREFIX, GetArrayCell(ct_matrix, i), g_Client[GetArrayCell(ct_matrix, i)].round_damage);
-    }
-
     for (int i = 0; (i < GetTeamBalanceAmount(CS_TEAM_T)) && (i < GetArraySize(ct_matrix)); i++) {
         SwitchClientTeam(GetArrayCell(ct_matrix, i), CS_TEAM_T);
-        // PrintToChatAll("Transferring %N players to t", GetArrayCell(ct_matrix, i));
     }
 
     delete t_matrix;
@@ -296,12 +287,6 @@ void ScrambleTeams(bool sort_by_frags = true) {
                     SwapArrayItems(players_matrix, j, j + 1);
                 }
             }
-        }
-
-        // Print frag stats
-        PrintToChatAll("%s Scramble stats:", RETAKE_PREFIX);
-        for (int i = 0; i < GetArraySize(players_matrix); i++) {
-            PrintToChatAll("%s %d. %N with %d frags", RETAKE_PREFIX, i + 1, GetArrayCell(players_matrix, i), GetClientFrags(GetArrayCell(players_matrix, i)));
         }
     }
     else {
@@ -377,8 +362,6 @@ void BeforeSetupRound() {
         g_bFullBuyTriggered = true;
         SetRoundState(FULLBUY_ROUND);
     }
-
-    PrintToChatAll("%s Started round %d (0x%08x)", RETAKE_PREFIX, round_counter, g_rtRoundState);
 }
 
 void EnableEdit() {
