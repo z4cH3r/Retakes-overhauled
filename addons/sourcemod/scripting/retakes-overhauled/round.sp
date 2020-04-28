@@ -488,6 +488,9 @@ void SetupRound() {
         case DEAGLE_ROUND: {
             SetupDeagleRound();
         }
+        case AWP_ROUND: {
+            SetupAWPRound();
+        }
     }
 }
 
@@ -499,6 +502,20 @@ void SetupEditRound() {
     }
     LoadSpawns();
     DrawSpawns();
+}
+
+void SetupAWPRound() {
+    /** Per player setup **/
+    for (int i = 1; i <= MaxClients; i++) {
+        if (!IsClientInGamePlaying(i)) {
+            continue;
+        }
+
+        SetEntProp(i, Prop_Send, "m_bHasHelmet", 1); // Head armor = true
+        SetEntProp(i, Prop_Data, "m_ArmorValue", 100, 1); 
+
+        GiveClientItemWeaponID(i, AWP);
+    }
 }
 
 void SetupDeagleRound() {

@@ -35,6 +35,7 @@ void InitConsoleCMDs() {
     RegConsoleCmd("sm_guns", MenuGunPref);
     RegConsoleCmd("sm_vp", c_VotePistol);
     RegConsoleCmd("sm_vd", c_VoteDeagle);
+    RegConsoleCmd("sm_va", c_VoteAWP);
 }
 
 void SetRetakeLiveCvars() {

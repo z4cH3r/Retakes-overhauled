@@ -110,6 +110,7 @@ enum RoundTypes {
     PISTOL_ROUND    = 1 << 5,
     FULLBUY_ROUND   = 1 << 6,
     DEAGLE_ROUND    = 1 << 7,
+    AWP_ROUND       = 1 << 8,
 }
 
 enum WeaponsSlot {
