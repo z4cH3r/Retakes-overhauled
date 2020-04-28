@@ -158,8 +158,12 @@ void SwapBomber() {
 }
 
 void SetupPreRound() {
-    if (g_rtRoundState & (RETAKE_NOT_LIVE | TIMER_STARTED | TIMER_STOPPED)) {
+    if (g_rtRoundState & (RETAKE_NOT_LIVE | TIMER_STARTED)) {
         return;
+    }
+
+    if (g_rtRoundState == TIMER_STOPPED) {
+        ScrambleTeams(false);
     }
 
     if (!g_bBombWasPlanted) {
@@ -313,11 +317,6 @@ void SetupTeams() {
     }
 
     VerifyTeamBalance(); // Might be bug cause I'm stupid
-
-    if (g_rtRoundState == TIMER_STOPPED)
-    {
-        ScrambleTeams(false);
-    }
 
     if (g_iWinStreak >= WINSTREAK_MAX) {
         PrintToChatAll("%s Terrorist achieved maximum winstreak of %d, scrambling...", RETAKE_PREFIX, WINSTREAK_MAX);
