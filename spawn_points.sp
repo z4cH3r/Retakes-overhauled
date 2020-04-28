@@ -255,6 +255,11 @@ Action OnEndTouch(int ent, int client) {
 }
 
 void AddSpawnPoint(Bombsite site, SpawnType type, float[] loc, float[] ang) {
+    if (GetSpawnCount() >= MAX_SPAWN_COUNT) {
+        PrintToChatAll("Could not add spawn due to num of spawns at maximum (%d out of %d)", GetSpawnCount(), MAX_SPAWN_COUNT);
+        return;
+    }
+
     char query[MAX_SQL_QUERY_SIZE];
     FormatEx(query, sizeof(query), "INSERT INTO spawns (map, type, site, posx, posy, posz, angx) VALUES ('%s', '%d', '%d', %f, %f, %f, %f);", GetCurrentMapLower(), type, site, loc[0], loc[1], loc[2], ang[1]);
     Handle ret = SQL_Query(g_hSql, query);
