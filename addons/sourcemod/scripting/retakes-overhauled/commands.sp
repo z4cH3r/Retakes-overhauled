@@ -12,7 +12,7 @@ void InitAdminCMDs() {
 
 public Action c_StartRetake(int client, int argc) {
     if (GetRoundState() == WAITING) {
-        PrintToChatAll("%s Not enough players, cannot start", RETAKE_PREFIX);
+        PrintToChatAll("%s \x07There isn't enough players to start Retakes!", RETAKE_PREFIX);
     }
     else {
         ServerCommand("mp_restartgame 1");
@@ -35,7 +35,7 @@ public Action c_AddSpawn(int client, int argc) {
         menu.Display(client, MENU_TIME_FOREVER);
     }
     else {
-        PrintToChat(client, "%s Not in edit mode, aborting commands", RETAKE_PREFIX);
+        PrintToChat(client, "%s \x07You must be in edit mode to use this command!", RETAKE_PREFIX);
     }
     return Plugin_Handled;
 }
@@ -47,7 +47,7 @@ public Action c_AllSpawn(int client, int argc) {
         g_Client[client].spawnpoint_tele = true;
     }
     else {
-        PrintToChat(client, "%s Not in edit mode, aborting commands", RETAKE_PREFIX);
+        PrintToChat(client, "%s \x07You must be in edit mode to use this command!", RETAKE_PREFIX);
     }
     return Plugin_Handled;
 }

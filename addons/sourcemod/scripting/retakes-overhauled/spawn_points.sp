@@ -111,7 +111,7 @@ void LoadSpawns() {
 
     if (GetRoundState() & ~EDIT) {
         if(GetSpawnCount() == 0) {
-            PrintToChatAll("%s Edit mode is enabled becuase there are no spawns", RETAKE_PREFIX);
+            PrintToChatAll("%s No spawns detected, enabling edit mode...", RETAKE_PREFIX);
             EnableEdit();
         }
     }
@@ -193,7 +193,7 @@ void DrawSpawns() {
         return;
     }
 
-    PrintToChatAll("%s There are %d spawns", RETAKE_PREFIX, GetSpawnCount());
+    PrintToChatAll("%s There are \x05%d\x01 spawns", RETAKE_PREFIX, GetSpawnCount());
     for (int i = 0; i < GetSpawnCount(); i++) {
         int ent = g_Spawns[i].ent_id;
         

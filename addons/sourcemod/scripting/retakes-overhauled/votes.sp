@@ -34,10 +34,10 @@ char[] GetVoteType(RoundTypes type) {
 
     switch (type) {
         case PISTOL_ROUND: {
-            msg = "pistols only";
+            msg = "Pistols Only";
         }
         case DEAGLE_ROUND: {
-            msg = "deagles only";
+            msg = "Deagles Only";
         }
         case AWP_ROUND: {
             msg = "AWP Only";
@@ -52,18 +52,18 @@ char[] GetVotePrefix(int client, RoundTypes type) {
 
     if (IsVoteEnabled(type)) {
         if (g_Client[client].votes[GetVoteIndex(type)]) {
-            msg = "wants to disable";
+            msg = "wants to \x07Disable\x01";
         }
         else {
-            msg = "devoted disabling";
+            msg = "\x07devoted disabling\x01";
         }
     }
     else {
         if (g_Client[client].votes[GetVoteIndex(type)]) {
-            msg = "wants to enable";
+            msg = "wants to \x05Enable\x01";
         }
         else {
-            msg = "devoted enabling";
+            msg = "\x07devoted enabling\x01";
         }
     }
 
@@ -128,11 +128,11 @@ bool TriggerVote(RoundTypes type) {
     if (votes_amount >= GetVotesAmountNeeded()) {
         ResetAllClientsVote(GetRoundState()); // Reset current votes to disable / enable
         if (IsVoteEnabled(type)) {
-            PrintToChatAll("%s %s disabled", RETAKE_PREFIX, GetVoteType(type));
+            PrintToChatAll("%s %s \x07Disabled", RETAKE_PREFIX, GetVoteType(type));
             SetRoundState(FULLBUY_ROUND);
         }
         else {
-            PrintToChatAll("%s %s enabled", RETAKE_PREFIX, GetVoteType(type));
+            PrintToChatAll("%s %s \x05Enabled", RETAKE_PREFIX, GetVoteType(type));
             SetRoundState(type);
         }
         
@@ -146,15 +146,15 @@ Action VoteHandler(int client, RoundTypes type) {
     if (CONSOLE_CLIENT == client) { return Plugin_Handled; }
     if (!IsClientInGamePlaying(client)) { return Plugin_Handled; }
     if (GetRoundState() & (RETAKE_NOT_LIVE | TIMER_STARTED)) {
-        PrintToChat(client, "%s You can vote only after retake has started..", RETAKE_PREFIX);
+        PrintToChat(client, "%s Voting is allowed only during live game..", RETAKE_PREFIX);
     }
     if (!CanVote(client)) {
-        PrintToChat(client, "%s You can vote only every %d seconds", RETAKE_PREFIX, VOTE_COOLDOWN_TIME);
+        PrintToChat(client, "%s Voting is allowed once in \x05%d\x01 seconds", RETAKE_PREFIX, VOTE_COOLDOWN_TIME);
         return Plugin_Handled;
     }
     else { g_Client[client].last_command_time = GetEngineTime(); }
     if (MIN_PISTOL_ROUNDS >= GetInternalRoundCounter()) { // Using internal because you can vote before round ends (round end but state hasn't changed)
-        PrintToChat(client, "%s Can vote for %s after %d rounds", RETAKE_PREFIX, GetVoteType(type), MIN_PISTOL_ROUNDS);
+        PrintToChat(client, "%s \x05%s\x01 is allowed after \x05%d\x01 rounds", RETAKE_PREFIX, GetVoteType(type), MIN_PISTOL_ROUNDS);
         return Plugin_Handled;
     }
 
@@ -162,7 +162,7 @@ Action VoteHandler(int client, RoundTypes type) {
     int votes_amount = GetVotesAmount(type);
     int votes_needed = GetVotesAmountNeeded();
 
-    PrintToChatAll("%s %N %s %s (%d of %d required)", RETAKE_PREFIX, client, GetVotePrefix(client, type), GetVoteType(type), votes_amount, votes_needed);
+    PrintToChatAll("%s Player \x05%N\x01 %s \x05%s\x01 (%d of %d required)", RETAKE_PREFIX, client, GetVotePrefix(client, type), GetVoteType(type), votes_amount, votes_needed);
 
     TriggerVote(type);
 

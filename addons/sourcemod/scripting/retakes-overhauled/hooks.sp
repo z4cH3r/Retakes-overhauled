@@ -47,7 +47,7 @@ Action l_JoinTeam(int client, const char[] command, int argc) {
 
     // Allow only moving to spec from any team
     if (CS_TEAM_SPECTATOR != target_team) {
-        PrintToChat(client, "%s Teams cannot be changed while retake is live ", RETAKE_PREFIX);
+        PrintToChat(client, "%s \x07Team change is forbidden during live game!", RETAKE_PREFIX);
     }
 
     switch (target_team) {
@@ -101,7 +101,7 @@ public Action e_OnRoundEnd(Event event, char[] name, bool dontBroadcast) {
         SetTWinStreak(GetTWinStreak() + 1);
         // If over 50% of rounds needed for scramble then print winstreak
         if (GetTWinStreak() > RoundToCeil(GetPercentage(WINSTREAK_MAX, 50))) {
-            PrintToChatAll("%s Terrors are on %d winstreak!", RETAKE_PREFIX, GetTWinStreak());
+            PrintToChatAll("%s \x07Terrorists\x01 are on \x05%d\x01 winstreak!", RETAKE_PREFIX, GetTWinStreak());
         }
     }
 
@@ -130,7 +130,7 @@ public Action e_OnBombDefused(Event event, char[] name, bool dontBroadcast)
 
     if(GetPlayerCount(GetTeamMatrix(CS_TEAM_T), true) > 0)
     {
-        PrintToChatAll("%s %N has ninja defused!", RETAKE_PREFIX, client);
+        PrintToChatAll("%s Player \x05%N\x01 just \x07- NINJA DEFUSED -\x01!", RETAKE_PREFIX, client);
         g_Client[client].round_damage += 400;
     }
 }

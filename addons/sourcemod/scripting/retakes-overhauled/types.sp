@@ -230,7 +230,7 @@ enum struct Queue {
         this.data[this.size] = client;
     
         this.size++;
-        PrintToChat(client, "%s You are now %d place in the queue", RETAKE_PREFIX, this.size);
+        PrintToChat(client, "%s You're \x05%d\x01 place in the queue", RETAKE_PREFIX, this.size);
 
         return true;
     }
@@ -246,7 +246,7 @@ enum struct Queue {
             this.data[i] = this.data[i + 1];
 
             if (0 != this.data[i]) {
-                PrintToChat(this.data[i], "%s You are now %d place in the queue", RETAKE_PREFIX, i + 1);
+                PrintToChat(this.data[i], "%s You're \x05%d\x01 place in the queue", RETAKE_PREFIX, i + 1);
             }
         }
 

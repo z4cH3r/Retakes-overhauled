@@ -86,7 +86,7 @@ bool TryRetakeStart() {
     if (WAITING != g_rtRoundState) {        
         SetRoundState(WAITING);
         if (GetClientCount() < MIN_PLAYERS) {
-            PrintToChatAll("%s Not enough players, aborting retake", RETAKE_PREFIX);
+            PrintToChatAll("%s \x07There isn't enough players to start Retakes!", RETAKE_PREFIX);
         }
         CS_TerminateRound(1.0, CSRoundEnd_Draw, false);
         ServerCommand("mp_restartgame 1");
@@ -116,7 +116,7 @@ Action TimerCountdown(Handle timer)
         EnableWarmupCountdown(5);
     }
     
-    PrintHintTextToAll("%s starting in %.02f ", RETAKE_PREFIX, g_fWarmupTimerEnd - GetEngineTime());	
+    PrintHintTextToAll("Retakes starting in: <font color='#FFAF00'>%.02f</font", g_fWarmupTimerEnd - GetEngineTime());	
     
     return Plugin_Continue;
 }
@@ -130,7 +130,7 @@ void ClearPlayerDamage() {
 void SetupWaitingRound() {
     if (GetClientCountFix() < MIN_PLAYERS) {
         SetInitCvars();        
-        PrintToChatAll("%s Waiting for more players (>= %d)", RETAKE_PREFIX, MIN_PLAYERS);	
+        PrintToChatAll("%s There needs to be at least \x05%d\x01 players to start retakes", RETAKE_PREFIX, MIN_PLAYERS);	
     }
     else {
         TryRetakeStart();
@@ -140,7 +140,7 @@ void SetupWaitingRound() {
 void SetupRoundEnd() {
     if (!g_bBombWasPlanted && (g_rtRoundState & ~RETAKE_NOT_LIVE)) {
         if (-1 != g_iBomber) {
-            PrintToChatAll("%s %N hasn't planted the bomb and will be swapped to CT", RETAKE_PREFIX, g_iBomber);
+            PrintToChatAll("%s Player \x05%N\x01 didn't planted the bomb and will be swapped to \x0BCT", RETAKE_PREFIX, g_iBomber);
         }
     }
 }
@@ -208,7 +208,7 @@ void VerifyTeamBalance() {
         client = GetRandomPlayer(GetTeamMatrix(CS_TEAM_T));
         if (-1 != client) {
             if (g_rtRoundState & ~(RETAKE_NOT_LIVE | TIMER_STARTED | TIMER_STOPPED)) {
-                PrintToChatAll("%s Moving %N to CT due to autoteambalance", RETAKE_PREFIX, client);
+                PrintToChatAll("%s Moved \x05%N\x01 to \x0BCT\x01 due to Auto-Team Balance", RETAKE_PREFIX, client);
             }
             SwitchClientTeam(client, CS_TEAM_CT);
         }
@@ -220,7 +220,7 @@ void VerifyTeamBalance() {
     while (GetClientCountFix(true) > MAX_INGAME_PLAYERS) {
         client = GetRandomPlayer(GetTeamMatrix(GetNextTeamBalance() ^ 1));
         if (-1 != client) {
-            PrintToChatAll("%s Moving %N to spectate due to too many players", RETAKE_PREFIX, client);
+            PrintToChatAll("%s Moved \x05%N\x01 to \x0DSPEC\x01 due to too many players", RETAKE_PREFIX, client);
             InsertClientIntoQueue(client);
         }
         else {
@@ -233,7 +233,7 @@ void VerifyTeamBalance() {
             client = GetRandomPlayer(GetTeamMatrix(CS_TEAM_CT));
             if (-1 != client) {
                 if (g_rtRoundState & ~(RETAKE_NOT_LIVE | TIMER_STARTED | TIMER_STOPPED)) {
-                    PrintToChatAll("%s Moving %N to T due to autoteambalance", RETAKE_PREFIX, client);
+                    PrintToChatAll("%s Moved \x05%N\x01 to \x07Terrorists\x01 due to too many players", RETAKE_PREFIX, client);
                 }
                 SwitchClientTeam(client, CS_TEAM_T);
             }
@@ -340,7 +340,7 @@ void SetupTeams() {
     VerifyTeamBalance(); // Might be bug cause I'm stupid
 
     if (g_iWinStreak >= WINSTREAK_MAX) {
-        PrintToChatAll("%s Terrorist achieved maximum winstreak of %d, scrambling...", RETAKE_PREFIX, WINSTREAK_MAX);
+        PrintToChatAll("%s \x07Terrorists\x01 on \x05%d\x01 winstreak, scrambling...", RETAKE_PREFIX, WINSTREAK_MAX);
         g_iWinStreak = 0;
         ScrambleTeams();
     }
@@ -388,7 +388,7 @@ void EnableEdit() {
     if ((INVALID_HANDLE != g_hStartTimer) && (GetEngineTime() < g_fWarmupTimerEnd)) {
         KillTimer(g_hStartTimer);
     }
-    PrintToChatAll("%s Edit mode enabled", RETAKE_PREFIX);
+    PrintToChatAll("%s Edit mode: \x05Enabled", RETAKE_PREFIX);
 
     SetEditCvars();
 
@@ -449,10 +449,10 @@ void RetakeLiveRoundSetup() {
 
     switch (cur_site) {
         case A:
-            PrintToChatAll("%s Retaking on site A (%d CT vs %d T)", RETAKE_PREFIX, \
+            PrintToChatAll("%s Retake site: \x04A\x01 (\x0B%d CT\x0D vs \x07%d T\x01)", RETAKE_PREFIX, \
              GetPlayerCount(GetTeamMatrix(CS_TEAM_CT)), GetPlayerCount(GetTeamMatrix(CS_TEAM_T)));	
         case B:
-            PrintToChatAll("%s Retaking on site B (%d CT vs %d T)", RETAKE_PREFIX, \
+            PrintToChatAll("%s Retake site: \x04B\x01 (\x0B%d CT\x0D vs \x07%d T\x01)", RETAKE_PREFIX, \
              GetPlayerCount(GetTeamMatrix(CS_TEAM_CT)), GetPlayerCount(GetTeamMatrix(CS_TEAM_T)));	
     }
 }

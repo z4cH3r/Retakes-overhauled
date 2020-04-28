@@ -98,7 +98,7 @@ void OnClientCookiesCached(int client) {
 
     if (is_new) {
         g_Client[client].pref.StoreClientCookies(client);
-        PrintToChat(client, "%s Type /guns to set your guns preferences", RETAKE_PREFIX);
+        PrintToChat(client, "%s Type \x05/guns\x01 to set your guns preferences", RETAKE_PREFIX);
     }
 }
 

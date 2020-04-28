@@ -102,7 +102,7 @@ Menu GetAllSpawnMenu() {
     Menu all_spawn_menu = CreateMenu(AllSpawnHandler, MENU_ACTIONS_ALL);
     SetMenuTitle(all_spawn_menu, "Teleport to spawn:");
     if (0 == GetSpawnCount()) {
-        PrintToChatAll("%s No spawn points existing", RETAKE_PREFIX);
+        PrintToChatAll("%s \x07No spawn points existing!", RETAKE_PREFIX);
     }
     for (int i = 0; i < GetSpawnCount(); i++) {
         Format(buffer, sizeof(buffer), "ID: %d - Site %s - %s",                 \
@@ -161,7 +161,7 @@ public int EditSpawnHandler(Menu menu, MenuAction action, int client, int param2
 
 Menu GetAwpMenu() {
     Menu AwpMenu = new Menu(MenuGunAwpHandler);
-    AwpMenu.SetTitle("Would you like to play with awp?");
+    AwpMenu.SetTitle("Would you like to play with AWP?");
     AwpMenu.AddItem("1", "Yes");
     AwpMenu.AddItem("0", "No");
     AwpMenu.ExitButton = false;
@@ -170,7 +170,7 @@ Menu GetAwpMenu() {
 
 Menu GetAwpSecondaryMenu() {
     Menu AwpSecondaryMenu = new Menu(AwpSecondaryMenuHandler);
-    AwpSecondaryMenu.SetTitle("Which pistol would you like with awp?");
+    AwpSecondaryMenu.SetTitle("Which pistol would you like with AWP?");
 
     char itoa_FiveSeven_Tec9_P250[MAX_INPUT_SIZE];
     IntToString(view_as<int>(FIVESEVEN | TEC9 | P250), itoa_FiveSeven_Tec9_P250, sizeof(itoa_FiveSeven_Tec9_P250));
@@ -181,9 +181,9 @@ Menu GetAwpSecondaryMenu() {
     char itoa_P250[MAX_INPUT_SIZE];
     IntToString(view_as<int>(P250), itoa_P250, sizeof(itoa_P250));
 
-    AwpSecondaryMenu.AddItem(itoa_FiveSeven_Tec9_P250, "Five-Seven / Tec-9 / p250");
-    AwpSecondaryMenu.AddItem(itoa_CZ_P250, "CZ / p250");
-    AwpSecondaryMenu.AddItem(itoa_P250, "p250");
+    AwpSecondaryMenu.AddItem(itoa_FiveSeven_Tec9_P250, "Five-Seven / Tec-9 / P250");
+    AwpSecondaryMenu.AddItem(itoa_CZ_P250, "CZ / P250");
+    AwpSecondaryMenu.AddItem(itoa_P250, "P250");
     AwpSecondaryMenu.ExitButton = false;
 
     return AwpSecondaryMenu;
