@@ -23,7 +23,7 @@
 
 #define WINSTREAK_MAX           (7) // Will scramble when winstreak >= 7
 
-#define RETAKE_PREFIX           ("[Retakes]")
+#define RETAKE_PREFIX           (" \x10│\x0D המחתרת \x10│\x01")
 #define RETAKE_CONFIG           ("retakes")
 
 #define CS_TEAM_ANY             (4) // Not in the original cstrike file
