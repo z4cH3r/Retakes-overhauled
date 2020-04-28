@@ -91,7 +91,7 @@ enum struct Spawn {
 
     void Initialize() {
         this.sql_id = -1;
-        this.ent_id = -1;
+        // this.ent_id = Not initializing because we keep 'cached' entity
         this.is_used = false;
         this.is_initialized = false;
         this.bombsite = BOMBSITE_NONE;
