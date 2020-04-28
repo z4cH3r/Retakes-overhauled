@@ -227,6 +227,21 @@ void VerifyTeamBalance() {
             break;
         }
     }
+
+    if (!g_bIsCTWin) { // If terror won the round
+        while (GetPlayerCount(GetTeamMatrix(CS_TEAM_CT)) > (GetPlayerCount(GetTeamMatrix(CS_TEAM_T)) + 1)) {
+            client = GetRandomPlayer(GetTeamMatrix(CS_TEAM_CT));
+            if (-1 != client) {
+                if (g_rtRoundState & ~(RETAKE_NOT_LIVE | TIMER_STARTED | TIMER_STOPPED)) {
+                    PrintToChatAll("%s Moving %N to T due to autoteambalance", RETAKE_PREFIX, client);
+                }
+                SwitchClientTeam(client, CS_TEAM_T);
+            }
+            else {
+                break;
+            }
+        } 
+    }
 }
 
 // Returns which team would a player be assigned NEXT
