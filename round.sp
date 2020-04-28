@@ -475,6 +475,7 @@ void SetupEditRound() {
         g_Client[i].spawnpoint_tele = false;
         g_Client[i].edit_menu_opened = false;
     }
+    LoadSpawns();
     DrawSpawns();
 }
 

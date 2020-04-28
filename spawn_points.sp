@@ -14,6 +14,10 @@ void ResetSpawns() {
             // Hide all cached entities (We then draw only those we need)
             SetEntityRenderMode(g_Spawns[i].ent_id, RENDER_NONE);
         }
+        else {
+            // Clear deprecated entities (last round, etc)
+            g_Spawns[i].ent_id = 0;
+        }
         g_Spawns[i].Initialize();
     }
 }
@@ -195,12 +199,11 @@ void DrawSpawns() {
         
         if (!ValidateCachedEntity(ent)) {
             ent = CreateEntityByName("prop_dynamic");
+            if (-1 == ent) {
+                SetFailState("%s Could not create entity", RETAKE_PREFIX);
+                return;
+            }
             g_Spawns[i].ent_id = ent;
-        }
-
-        if (-1 == ent) {
-            SetFailState("%s Could not create entity", RETAKE_PREFIX);
-            return;
         }
 
         int target_color[3]; // [r, g, b]
