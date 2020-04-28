@@ -158,8 +158,13 @@ void SwapBomber() {
 }
 
 void SetupPreRound() {
-    if (g_rtRoundState & (RETAKE_NOT_LIVE | TIMER_STARTED | TIMER_STOPPED)) {
+    if (g_rtRoundState & (RETAKE_NOT_LIVE | TIMER_STARTED)) {
         return;
+    }
+
+    if (g_rtRoundState == TIMER_STOPPED) {
+        VerifyTeamBalance(); // Might be bug cause I'm stupid
+        ScrambleTeams(false);
     }
 
     if (!g_bBombWasPlanted) {
@@ -202,16 +207,21 @@ void VerifyTeamBalance() {
     while (GetPlayerCount(GetTeamMatrix(CS_TEAM_T)) > GetPlayerCount(GetTeamMatrix(CS_TEAM_CT))) {
         client = GetRandomPlayer(GetTeamMatrix(CS_TEAM_T));
         if (-1 != client) {
+            if (g_rtRoundState & ~(RETAKE_NOT_LIVE | TIMER_STARTED | TIMER_STOPPED)) {
+                PrintToChatAll("%s Moving %N to CT due to autoteambalance", RETAKE_PREFIX, client);
+            }
             SwitchClientTeam(client, CS_TEAM_CT);
-            PrintToChatAll("%s Moved %N to CT due to autoteambalance", RETAKE_PREFIX, client);
+        }
+        else {
+            break;
         }
     }
 
     while (GetClientCountFix(true) > MAX_INGAME_PLAYERS) {
-        client = GetRandomPlayer(GetTeamMatrix(CS_TEAM_T));
+        client = GetRandomPlayer(GetTeamMatrix(GetNextTeamBalance() ^ 1));
         if (-1 != client) {
-            SwitchClientTeam(client, CS_TEAM_SPECTATOR);
-            PrintToChatAll("%s Moved %N to spectate due to too many players", RETAKE_PREFIX, client);
+            PrintToChatAll("%s Moving %N to spectate due to too many players", RETAKE_PREFIX, client);
+            InsertClientIntoQueue(client);
         }
         else {
             break;
@@ -313,11 +323,6 @@ void SetupTeams() {
     }
 
     VerifyTeamBalance(); // Might be bug cause I'm stupid
-
-    if (g_rtRoundState == TIMER_STOPPED)
-    {
-        ScrambleTeams(false);
-    }
 
     if (g_iWinStreak >= WINSTREAK_MAX) {
         PrintToChatAll("%s Terrorist achieved maximum winstreak of %d, scrambling...", RETAKE_PREFIX, WINSTREAK_MAX);
@@ -472,10 +477,12 @@ void SetupRound() {
 }
 
 void SetupEditRound() {
+    ClearQueue();
     for (int i = 0; i < MaxClients; i++) {
         g_Client[i].spawnpoint_tele = false;
         g_Client[i].edit_menu_opened = false;
     }
+    LoadSpawns();
     DrawSpawns();
 }
 
@@ -573,6 +580,8 @@ void PrecacheModels() {
 }
 
 public void OnMapStart() {
+    ClearQueue();
+
     SetRoundState(WARMUP);
 
     ResetAllClientsAllVotes();

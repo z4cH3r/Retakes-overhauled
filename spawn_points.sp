@@ -10,8 +10,13 @@ Handle g_hSql = INVALID_HANDLE;
 
 void ResetSpawns() {
     for (int i = 0; i < MAX_SPAWN_COUNT; i++) {
-        if (IsValidEdict(g_Spawns[i].ent_id) && g_Spawns[i].ent_id > 1) {
-            RemoveEdict(g_Spawns[i].ent_id); 
+        if (ValidateCachedEntity(g_Spawns[i].ent_id)) {
+            // Hide all cached entities (We then draw only those we need)
+            SetEntityRenderMode(g_Spawns[i].ent_id, RENDER_NONE);
+        }
+        else {
+            // Clear deprecated entities (last round, etc)
+            g_Spawns[i].ent_id = 0;
         }
         g_Spawns[i].Initialize();
     }
@@ -88,7 +93,6 @@ void LoadSpawns() {
     while (SQL_FetchRow(hndl) && spawn_index < MAX_SPAWN_COUNT) {
         g_Spawns[spawn_index].is_initialized = true;
         g_Spawns[spawn_index].sql_id = SQL_FetchInt(hndl, 0);
-        g_Spawns[spawn_index].ent_id = -1;
         g_Spawns[spawn_index].spawn_type = view_as<SpawnType>(SQL_FetchInt(hndl, 1));
         g_Spawns[spawn_index].bombsite = view_as<Bombsite>(SQL_FetchInt(hndl, 2));
         g_Spawns[spawn_index].spawn_location.x = SQL_FetchFloat(hndl, 3);
@@ -180,6 +184,10 @@ void TeleportClient(int client, Spawn spawn) {
     }
 }
 
+bool ValidateCachedEntity(int ent) {
+    return ent > 0 && IsValidEntity(ent);
+}
+
 void DrawSpawns() {
     if (GetRoundState() != EDIT) {
         return;
@@ -187,16 +195,20 @@ void DrawSpawns() {
 
     PrintToChatAll("%s There are %d spawns", RETAKE_PREFIX, GetSpawnCount());
     for (int i = 0; i < GetSpawnCount(); i++) {
-        int ent = CreateEntityByName("prop_dynamic"); 
-        if (-1 == ent) {
-            SetFailState("%s Could not create entity", RETAKE_PREFIX);
-            return;
+        int ent = g_Spawns[i].ent_id;
+        
+        if (!ValidateCachedEntity(ent)) {
+            ent = CreateEntityByName("prop_dynamic");
+            if (-1 == ent) {
+                SetFailState("%s Could not create entity", RETAKE_PREFIX);
+                return;
+            }
+            g_Spawns[i].ent_id = ent;
         }
 
-        g_Spawns[i].ent_id = ent;
         int target_color[3]; // [r, g, b]
         SetModelBombsiteColor(g_Spawns[i].bombsite, target_color);
-
+        SetEntityRenderMode(g_Spawns[i].ent_id, RENDER_NORMAL);
         SetEntityModel(ent, GetModelByType(g_Spawns[i].spawn_type));
         ActivateEntity(ent);
         DispatchSpawn(ent);
@@ -255,6 +267,11 @@ Action OnEndTouch(int ent, int client) {
 }
 
 void AddSpawnPoint(Bombsite site, SpawnType type, float[] loc, float[] ang) {
+    if (GetSpawnCount() >= MAX_SPAWN_COUNT) {
+        PrintToChatAll("Could not add spawn due to num of spawns at maximum (%d out of %d)", GetSpawnCount(), MAX_SPAWN_COUNT);
+        return;
+    }
+
     char query[MAX_SQL_QUERY_SIZE];
     FormatEx(query, sizeof(query), "INSERT INTO spawns (map, type, site, posx, posy, posz, angx) VALUES ('%s', '%d', '%d', %f, %f, %f, %f);", GetCurrentMapLower(), type, site, loc[0], loc[1], loc[2], ang[1]);
     Handle ret = SQL_Query(g_hSql, query);

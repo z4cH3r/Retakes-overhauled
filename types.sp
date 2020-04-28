@@ -7,7 +7,7 @@
 #define MAX_INPUT_SIZE          (128)
 #define MAX_CONVAR_SIZE         (256)
 #define MAX_SQL_QUERY_SIZE      (512)
-#define MAX_SPAWN_COUNT         (48)
+#define MAX_SPAWN_COUNT         (64)
 #define MAX_MAP_STRING_SIZE     (32)
 #define MAX_INGAME_PLAYERS      (9)
 #define MAX_DB_RETRIES          (20)
@@ -91,7 +91,7 @@ enum struct Spawn {
 
     void Initialize() {
         this.sql_id = -1;
-        this.ent_id = -1;
+        // this.ent_id = Not initializing because we keep 'cached' entity
         this.is_used = false;
         this.is_initialized = false;
         this.bombsite = BOMBSITE_NONE;
