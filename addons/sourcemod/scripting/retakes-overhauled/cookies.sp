@@ -2,7 +2,7 @@
 #define COOKIES_SP
 
 #include "retake.sp"
-#include "types.sp"
+#include "retakes-overhauled/types.sp"
 
 
 Handle g_hClientAwp = INVALID_HANDLE;

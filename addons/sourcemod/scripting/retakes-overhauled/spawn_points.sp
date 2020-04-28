@@ -1,7 +1,7 @@
 #if !defined SPAWN_POINTS_SP
 #define SPAWN_POINTS_SP
 
-#include "types.sp"
+#include "retakes-overhauled/types.sp"
 
 
 Handle g_hSql = INVALID_HANDLE;
