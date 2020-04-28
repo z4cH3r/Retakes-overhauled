@@ -279,8 +279,11 @@ int GetClientsAmountPercentage(int percentage) {
 
 void SwitchClientTeam(int client, int team) {
     if (!IsClientValid(client)) { return; }
-    CS_SwitchTeam(client, team);
-    if (CS_TEAM_SPECTATOR != team && CS_TEAM_NONE != team) {
+    if (CS_TEAM_SPECTATOR == team || CS_TEAM_NONE == team) {
+        ChangeClientTeam(client, team);
+    }
+    else {
+        CS_SwitchTeam(client, team);
         CS_UpdateClientModel(client);
     }
 }
