@@ -145,4 +145,10 @@ char[] GetSpawnTypeStringFromSpawnType(SpawnType type) {
     return ret;
 }
 
+void ClearQueue() {
+    while (-1 != g_ClientQueue.pop()) {
+        
+    }
+}
+
 #endif // RETAKE_SP
